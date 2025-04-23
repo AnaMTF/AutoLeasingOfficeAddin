@@ -16,8 +16,8 @@ namespace WordClientNou.Models
         public decimal PretZi { get; set; }      // tarif / zi
         public int Kilometraj { get; set; }      // km / zi incluși (null = nelimitat)
         public int NrLocuri { get; set; }      // 2‑9
-        public string StatusOferta { get; set; }      // Activ / Indisponibil / Arhivat
-        public byte[] Poza { get; set; }      // imagine principală (primul attachment)
+        public string StatusOferta { get; set; }      // Disponibil, Indisponibil
+        public string NumePoza { get; set; }      // numele imaginii
 
         public Oferta() { }
         public Oferta(string numeMasina, string marca, string tipCarburant,

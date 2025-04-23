@@ -16,6 +16,7 @@ using System.Runtime.InteropServices;
 using System.Drawing;
 using System.IO;
 
+
 namespace WordClientNou
 {
     public partial class ThisDocument
@@ -24,6 +25,7 @@ namespace WordClientNou
         Button btnPowerpoint;
         
         string connString = @"Provider=Microsoft.ACE.OLEDB.12.0;Data Source=C:\Users\anama\source\repos\ProiectIPLA\WordClientNou\IPLAproiect.accdb";
+        string ImageFolder =@"C:\Users\anama\source\repos\ProiectIPLA\WordClientNou\ImaginiDB";
 
         private void ThisDocument_Startup(object sender, System.EventArgs e)
         {
@@ -103,7 +105,7 @@ namespace WordClientNou
 
             List<Oferta> oferte = GetOferte(connString);
             foreach (var oferta in oferte)
-                AddOfertaSlide(pres, oferta, Globals.ThisDocument.Path);
+                AddOfertaSlide(pres, oferta);
         }
 
         private static List<Oferta> GetOferte(string conn)
@@ -132,7 +134,7 @@ namespace WordClientNou
                             Kilometraj = r.GetInt32(r.GetOrdinal("Kilometraj")),
                             NrLocuri = r.GetInt32(r.GetOrdinal("NrLocuri")),
                             StatusOferta = r.GetString(r.GetOrdinal("StatusOferta")),
-                            Poza = ExtractFirstAttachment(r.GetValue(ixPoza))
+                            NumePoza = r.GetString(r.GetOrdinal("Poza"))
                         };
                         list.Add(o);
                     }
@@ -141,98 +143,91 @@ namespace WordClientNou
             return list;
         }
 
-        // helper pt. Attachment → byte[]
-        private static byte[] ExtractFirstAttachment(object raw)
-        {
-            if (raw is byte[] single) return single;
-            if (raw is Array arr && arr.Length > 0 && arr.GetValue(0) is byte[] first)
-                return first;
-            return null;
-        }
-
-        // =======================================================
-        //  construieşte un slide dintr‑o ofertă
-        private static void AddOfertaSlide(PowerPoint.Presentation pres, Oferta of, string documentFolder)
+        private void AddOfertaSlide(PowerPoint.Presentation pres, Oferta of)
         {
             var sld = pres.Slides.Add(pres.Slides.Count + 1,
                         PowerPoint.PpSlideLayout.ppLayoutBlank);
-
-            // 0️⃣ – ID ofertă
             sld.Tags.Add("OfferID", of.IdOferta.ToString());
 
-            // 1️⃣ – FOTOGRAFIA MAȘINII (dacă există)
-            if (of.Poza != null && of.Poza.Length > 0)
-            {
-                // fișier TMP unic (ex.  C:\...\Temp\718c2e2f.jpg)
-                
+            // 🔷 Gradient albastru pe fundal
+            sld.FollowMasterBackground = Office.MsoTriState.msoFalse;
+            var bgFill = sld.Background.Fill;
+            bgFill.Visible = Office.MsoTriState.msoTrue;
+            bgFill.ForeColor.RGB = ColorTranslator.ToOle(Color.Blue);
+            bgFill.BackColor.RGB = ColorTranslator.ToOle(Color.White);
+            bgFill.TwoColorGradient(Office.MsoGradientStyle.msoGradientFromCenter, 1);
+            bgFill.GradientStops.Insert(ColorTranslator.ToOle(Color.DeepSkyBlue), 0.0f);
+            bgFill.GradientStops.Insert(ColorTranslator.ToOle(Color.White), 1.0f);
 
-                string imgPath = System.IO.Path.GetTempFileName();
-
-                File.WriteAllBytes(imgPath, of.Poza);
-
-                // inserează ca Shape (poți modifica poziția și dimensiunea)
-                sld.Shapes.AddPicture(imgPath,
-                    Office.MsoTriState.msoFalse,   // LinkToFile = FALSE
-                    Office.MsoTriState.msoTrue,    // SaveWithDocument = TRUE
-                    60, 270, 300, 200);            // Left, Top, Width, Height
-
-                File.Delete(imgPath);              // imaginea e deja încorporată
-            }
-
-            // 2️⃣ – Titlu (marca + model)
+            // 🔷 Titlu
             var titluBox = sld.Shapes.AddTextbox(
-                Office.MsoTextOrientation.msoTextOrientationHorizontal,
-                100, 30, 700, 60);
-
+                Office.MsoTextOrientation.msoTextOrientationHorizontal, 100, 30, 700, 60);
             var rngTitlu = titluBox.TextFrame.TextRange;
             rngTitlu.Text = $"{of.Marca} {of.NumeMasina}";
             rngTitlu.Font.Size = 42;
             rngTitlu.Font.Bold = Office.MsoTriState.msoTrue;
             rngTitlu.Font.Color.RGB = ColorTranslator.ToOle(Color.White);
-            rngTitlu.ParagraphFormat.Alignment =
-                PowerPoint.PpParagraphAlignment.ppAlignCenter;
-
+            rngTitlu.ParagraphFormat.Alignment = PowerPoint.PpParagraphAlignment.ppAlignCenter;
             titluBox.Fill.Visible = Office.MsoTriState.msoTrue;
             titluBox.Fill.Solid();
-            titluBox.Fill.ForeColor.RGB = ColorTranslator.ToOle(Color.LightBlue);
+            titluBox.Fill.ForeColor.RGB = ColorTranslator.ToOle(Color.FromArgb(173, 216, 230)); // baby blue
 
-            // 3️⃣ – Detalii
-            var detalii = sld.Shapes.AddTextbox(
+            // 🔷 Imagine maşină - rounded rectangle cu imagine de fundal
+            string imgPath = System.IO.Path.Combine(ImageFolder, of.NumePoza ?? "");
+            if (File.Exists(imgPath))
+            {
+                var shape = sld.Shapes.AddShape(Office.MsoAutoShapeType.msoShapeRoundedRectangle,
+                                                 160, 110, 600, 300);
+                shape.Fill.UserPicture(imgPath);
+                shape.Line.Visible = Office.MsoTriState.msoFalse;
+            }
+
+            // 🔷 Stea preț – colț dreapta
+            var stea = sld.Shapes.AddShape(Office.MsoAutoShapeType.msoShape5pointStar,
+                                           670, 110, 160, 160);
+            stea.Fill.Solid();
+            stea.Fill.ForeColor.RGB = ColorTranslator.ToOle(Color.DarkBlue);
+            stea.Line.Visible = Office.MsoTriState.msoFalse;
+
+            // 🔷 Caseta cu preț – mai lată, centrată
+            var pretBox = sld.Shapes.AddTextbox(
                 Office.MsoTextOrientation.msoTextOrientationHorizontal,
-                80, 120, 760, 120);
+                680, 160, 140, 40); // ⬅️ lățit
+            pretBox.TextFrame.TextRange.Text = of.PretZi.ToString("0");
+            pretBox.TextFrame.TextRange.Font.Size = 32;
+            pretBox.TextFrame.TextRange.Font.Bold = Office.MsoTriState.msoTrue;
+            pretBox.TextFrame.TextRange.Font.Color.RGB = ColorTranslator.ToOle(Color.HotPink);
+            pretBox.TextFrame.TextRange.ParagraphFormat.Alignment =
+                PowerPoint.PpParagraphAlignment.ppAlignCenter;
+            pretBox.TextFrame.VerticalAnchor = Office.MsoVerticalAnchor.msoAnchorMiddle; // ⬅️ centrare verticală
 
+            // 🔷 Caseta cu „Lei” – puțin mai jos, tot centrată
+            var leiBox = sld.Shapes.AddTextbox(
+                Office.MsoTextOrientation.msoTextOrientationHorizontal,
+                685, 195, 130, 30); // ⬅️ lățit și repoziționat
+            leiBox.TextFrame.TextRange.Text = "Lei";
+            leiBox.TextFrame.TextRange.Font.Size = 24;
+            leiBox.TextFrame.TextRange.Font.Bold = Office.MsoTriState.msoTrue;
+            leiBox.TextFrame.TextRange.Font.Color.RGB = ColorTranslator.ToOle(Color.HotPink);
+            leiBox.TextFrame.TextRange.ParagraphFormat.Alignment =
+                PowerPoint.PpParagraphAlignment.ppAlignCenter;
+            leiBox.TextFrame.VerticalAnchor = Office.MsoVerticalAnchor.msoAnchorMiddle;
+
+            // 🔷 Detalii sub imagine
+            var detalii = sld.Shapes.AddTextbox(
+                Office.MsoTextOrientation.msoTextOrientationHorizontal, 100, 430, 700, 60);
             detalii.Fill.Visible = Office.MsoTriState.msoTrue;
             detalii.Fill.Solid();
             detalii.Fill.ForeColor.RGB = ColorTranslator.ToOle(Color.FromArgb(208, 240, 255));
 
             var rngDet = detalii.TextFrame.TextRange;
-            rngDet.Text =
-                $"Durată minimă: {of.DurataMinima} zile | Tarif: {of.PretZi:C}/zi\n" +
-                $"Carburant: {of.TipCarburant} | Locuri: {of.NrLocuri} | " +
-                $"Km incluși/zi: {of.Kilometraj}";
-            rngDet.Font.Size = 20;
+            rngDet.Text = $"Durată minimă: {of.DurataMinima} zile | Tarif: {of.PretZi:C}/zi\n" +
+                          $"Carburant: {of.TipCarburant} | Locuri: {of.NrLocuri} | Km incluși/zi: {of.Kilometraj}";
+            rngDet.Font.Size = 18;
             rngDet.Font.Color.RGB = ColorTranslator.ToOle(Color.Black);
             rngDet.ParagraphFormat.Alignment = PowerPoint.PpParagraphAlignment.ppAlignLeft;
-
-            // 4️⃣ – Preț (text roz)
-            var pretBox = sld.Shapes.AddTextbox(
-                Office.MsoTextOrientation.msoTextOrientationHorizontal,
-                650, 80, 200, 60);
-            pretBox.TextFrame.TextRange.Text = of.PretZi.ToString("0");
-            pretBox.TextFrame.TextRange.Font.Size = 56;
-            pretBox.TextFrame.TextRange.Font.Color.RGB = ColorTranslator.ToOle(Color.HotPink);
-            pretBox.TextFrame.TextRange.ParagraphFormat.Alignment =
-                PowerPoint.PpParagraphAlignment.ppAlignCenter;
-
-            var leiBox = sld.Shapes.AddTextbox(
-                Office.MsoTextOrientation.msoTextOrientationHorizontal,
-                680, 140, 140, 40);
-            leiBox.TextFrame.TextRange.Text = "Lei";
-            leiBox.TextFrame.TextRange.Font.Size = 28;
-            leiBox.TextFrame.TextRange.Font.Color.RGB = ColorTranslator.ToOle(Color.HotPink);
-            leiBox.TextFrame.TextRange.ParagraphFormat.Alignment =
-                PowerPoint.PpParagraphAlignment.ppAlignCenter;
         }
+
         private void btnAdaugareClient_Click(object sender, EventArgs e)
         {
             if(string.IsNullOrEmpty(rtcNume.Text) || string.IsNullOrEmpty(rtcPrenume.Text) || string.IsNullOrEmpty(rtcTelefon.Text)
@@ -288,7 +283,9 @@ namespace WordClientNou
 
                 insertCommand.ExecuteNonQuery();
                 MessageBox.Show("Client adăugat cu succes!");
-
+                client.Id = maxId + 1;
+                StareClient.IdClientCurent = client.Id;
+               
                 // Clear the text boxes after adding the client
                 rtcNume.Text = "";
                 rtcPrenume.Text = "";
