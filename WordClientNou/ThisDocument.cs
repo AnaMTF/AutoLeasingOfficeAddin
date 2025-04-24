@@ -15,6 +15,7 @@ using PowerPoint = Microsoft.Office.Interop.PowerPoint;
 using System.Runtime.InteropServices;
 using System.Drawing;
 using System.IO;
+using System.IO.Pipes;
 
 
 namespace WordClientNou
@@ -27,6 +28,8 @@ namespace WordClientNou
         string connString = @"Provider=Microsoft.ACE.OLEDB.12.0;Data Source=C:\Users\anama\source\repos\ProiectIPLA\WordClientNou\IPLAproiect.accdb";
         string ImageFolder =@"C:\Users\anama\source\repos\ProiectIPLA\WordClientNou\ImaginiDB";
 
+        private const string pipeName = "UserID-Transmission-Pipe";
+        private NamedPipeServerStream pipe = new NamedPipeServerStream(pipeName, PipeDirection.Out);
         private void ThisDocument_Startup(object sender, System.EventArgs e)
         {
             btnAdaugareClient = new Button();
@@ -39,6 +42,8 @@ namespace WordClientNou
 
             Globals.ThisDocument.ActionsPane.Controls.Add(btnAdaugareClient);
             Globals.ThisDocument.ActionsPane.Controls.Add(btnPowerpoint);
+
+            pipe.WaitForConnection();
         }
 
         private void btnPowerpoint_Click(object sender, EventArgs e)
@@ -106,6 +111,9 @@ namespace WordClientNou
             List<Oferta> oferte = GetOferte(connString);
             foreach (var oferta in oferte)
                 AddOfertaSlide(pres, oferta);
+
+            var bw = new BinaryWriter(pipe);
+            bw.Write(StareClient.IdClientCurent);
         }
 
         private static List<Oferta> GetOferte(string conn)
@@ -302,6 +310,7 @@ namespace WordClientNou
 
         private void ThisDocument_Shutdown(object sender, System.EventArgs e)
         {
+            //pipe.Close();
         }
 
         #region VSTO Designer generated code

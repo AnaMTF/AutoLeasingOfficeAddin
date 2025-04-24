@@ -6,6 +6,8 @@ using Office = Microsoft.Office.Core;
 using WordClientNou.Models;
 using System.Data.OleDb;
 using System.Net.NetworkInformation;
+using System.IO.Pipes;
+using System.IO;
 
 
 namespace PowerPointCatalog
@@ -14,14 +16,21 @@ namespace PowerPointCatalog
     {
         PowerPoint.Application pptApp;
 
+        private const string pipeName = "UserID-Transmission-Pipe";
+        private NamedPipeClientStream pipe = new NamedPipeClientStream(".", pipeName, PipeDirection.In);
+
         private void RibbonPowerpoint_Load(object sender, RibbonUIEventArgs e)
         {
             pptApp = Globals.ThisAddIn.Application;
-        }
 
-        private void btnOferta_Click_1(object sender, RibbonControlEventArgs e)
+            pipe.Connect(2000);          // 2-second timeout
+        }
+        private void btnOferta_Click(object sender, RibbonControlEventArgs e)
         {
-            // 1️⃣ – Slide activ
+            var br = new BinaryReader(pipe);
+            StareClient.IdClientCurent = br.ReadInt32();
+
+            // 1️ – Slide activ
             PowerPoint.Slide curSlide = null;
 
             if (pptApp.ActiveWindow?.View?.Type == PowerPoint.PpViewType.ppViewNormal)
@@ -35,7 +44,7 @@ namespace PowerPointCatalog
                 return;
             }
 
-            // 2️⃣ – Obține OfferID
+            // 2️ – Obține OfferID
             string idText = curSlide.Tags["OfferID"];
             if (string.IsNullOrEmpty(idText) || !int.TryParse(idText, out int ofertaId))
             {
@@ -43,7 +52,7 @@ namespace PowerPointCatalog
                 return;
             }
 
-            // 3️⃣ – Obține ID-ul clientului din Word
+            // 3️ – Obține ID-ul clientului din Word
             int idClient = StareClient.IdClientCurent;
             if (idClient <= 0)
             {
@@ -51,7 +60,7 @@ namespace PowerPointCatalog
                 return;
             }
 
-            // 4️⃣ – UPDATE în Access: setează IdClient + StatusOferta
+            // 4️ – UPDATE în Access: setează IdClient + StatusOferta
             string connString = @"Provider=Microsoft.ACE.OLEDB.12.0;Data Source=C:\Users\anama\source\repos\ProiectIPLA\WordClientNou\IPLAproiect.accdb";
 
             try
@@ -78,6 +87,8 @@ namespace PowerPointCatalog
             {
                 MessageBox.Show("Eroare la actualizarea ofertei: " + ex.Message);
             }
+
+            //MessageBox.Show("Această funcționalitate nu este disponibilă în PowerPoint.");
         }
     }
 }

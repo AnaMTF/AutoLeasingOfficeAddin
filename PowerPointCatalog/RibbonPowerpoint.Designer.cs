@@ -58,7 +58,7 @@
             // 
             this.btnOferta.Label = "Selecteaza Oferta";
             this.btnOferta.Name = "btnOferta";
-            this.btnOferta.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.btnOferta_Click_1);
+            this.btnOferta.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.btnOferta_Click);
             // 
             // RibbonPowerpoint
             // 

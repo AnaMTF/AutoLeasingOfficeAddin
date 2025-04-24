@@ -15,6 +15,7 @@
     <ResolveComReferenceSilent>true</ResolveComReferenceSilent>
     <ProjectGuid>{1E2071E3-A1C7-5CD3-5028-302A9188FD2E}</ProjectGuid>
     <SolutionID>34efcd58-f6e3-4dfc-8d15-ec6cf8603705</SolutionID>
+    <IsWebBootstrapper>False</IsWebBootstrapper>
     <BootstrapperEnabled>true</BootstrapperEnabled>
     <PublishUrl>publish\</PublishUrl>
     <InstallUrl />
@@ -24,7 +25,6 @@
     <UpdateEnabled>true</UpdateEnabled>
     <UpdateInterval>7</UpdateInterval>
     <UpdateIntervalUnits>days</UpdateIntervalUnits>
-    <IsWebBootstrapper>False</IsWebBootstrapper>
     <ProductName>WordClientNou</ProductName>
     <PublisherName />
     <SupportUrl />
@@ -203,7 +203,6 @@
       <DependentUpon>Settings.settings</DependentUpon>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
-    <None Include="WordClientNou_TemporaryKey.pfx" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="IPLAproiect.accdb">
@@ -218,16 +217,18 @@
     <SignAssembly>false</SignAssembly>
   </PropertyGroup>
   <PropertyGroup>
-    <AssemblyOriginatorKeyFile>WordClientNou_TemporaryKey.pfx</AssemblyOriginatorKeyFile>
+    <AssemblyOriginatorKeyFile>
+    </AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <PropertyGroup>
     <SignManifests>true</SignManifests>
   </PropertyGroup>
   <PropertyGroup>
-    <ManifestKeyFile>WordClientNou_TemporaryKey.pfx</ManifestKeyFile>
+    <ManifestKeyFile>
+    </ManifestKeyFile>
   </PropertyGroup>
   <PropertyGroup>
-    <ManifestCertificateThumbprint>804AE0380B5BED0A605B3B6DD06F5204F6BA745C</ManifestCertificateThumbprint>
+    <ManifestCertificateThumbprint>5A10A0A56F0EEDDEF8DBC249E97F851C88BBD561</ManifestCertificateThumbprint>
   </PropertyGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(VSToolsPath)\OfficeTools\Microsoft.VisualStudio.Tools.Office.targets" Condition="'$(VSToolsPath)' != ''" />
