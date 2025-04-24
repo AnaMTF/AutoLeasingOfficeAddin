@@ -27,9 +27,6 @@ namespace PowerPointCatalog
         }
         private void btnOferta_Click(object sender, RibbonControlEventArgs e)
         {
-            var br = new BinaryReader(pipe);
-            StareClient.IdClientCurent = br.ReadInt32();
-
             // 1️ – Slide activ
             PowerPoint.Slide curSlide = null;
 
@@ -53,6 +50,15 @@ namespace PowerPointCatalog
             }
 
             // 3️ – Obține ID-ul clientului din Word
+            var br = new BinaryReader(pipe);
+            if (br.PeekChar() == -1)
+            {
+                pipe.Dispose();
+                MessageBox.Show("Clientul nu a fost setat. Vă rugăm să adăugați un client în Word înainte de a selecta o ofertă.");
+                return;
+            }
+
+            StareClient.IdClientCurent = br.ReadInt32();
             int idClient = StareClient.IdClientCurent;
             if (idClient <= 0)
             {
