@@ -1,7 +1,0 @@
-﻿namespace WordClientNou.Models
-{
-    public class StareClient
-    {
-        public static int IdClientCurent { get; set; } = -1;
-    }
-}

@@ -16,6 +16,7 @@ using System.Runtime.InteropServices;
 using System.Drawing;
 using System.IO;
 using System.IO.Pipes;
+using Microsoft.Office.Interop.PowerPoint;
 
 
 namespace WordClientNou
@@ -28,8 +29,6 @@ namespace WordClientNou
         string connString = @"Provider=Microsoft.ACE.OLEDB.12.0;Data Source=C:\Users\anama\source\repos\ProiectIPLA\WordClientNou\IPLAproiect.accdb";
         string ImageFolder =@"C:\Users\anama\source\repos\ProiectIPLA\WordClientNou\ImaginiDB";
 
-        private const string pipeName = "UserID-Transmission-Pipe";
-        private NamedPipeServerStream pipe = new NamedPipeServerStream(pipeName, PipeDirection.Out);
         private void ThisDocument_Startup(object sender, System.EventArgs e)
         {
             btnAdaugareClient = new Button();
@@ -43,7 +42,15 @@ namespace WordClientNou
             Globals.ThisDocument.ActionsPane.Controls.Add(btnAdaugareClient);
             Globals.ThisDocument.ActionsPane.Controls.Add(btnPowerpoint);
 
-            pipe.WaitForConnection();
+            // la deschiderea documentului, clientul actual este resetat
+            var conn = new OleDbConnection(connString);
+            conn.Open();
+            const string sql = "UPDATE DateActuale SET IdClientActual = -1, IdOfertaActuala = -1 WHERE ID = 1";
+            using (var cmd = new OleDbCommand(sql, conn))
+            {
+                cmd.ExecuteNonQuery();
+            }
+            conn.Close();
         }
 
         private void btnPowerpoint_Click(object sender, EventArgs e)
@@ -112,8 +119,6 @@ namespace WordClientNou
             foreach (var oferta in oferte)
                 AddOfertaSlide(pres, oferta);
 
-            var bw = new BinaryWriter(pipe);
-            bw.Write(StareClient.IdClientCurent);
         }
 
         private static List<Oferta> GetOferte(string conn)
@@ -267,43 +272,65 @@ namespace WordClientNou
             }
             else
             {
-                OleDbConnection conn = new OleDbConnection(connString);
-                conn.Open();
                 Client client = new Client(rtcNume.Text, rtcPrenume.Text, rtcTelefon.Text, rtcJudet.Text, rtcCNP.Text, rtcEmail.Text, rtcAdresa.Text, rtcLocSec.Text, dlcVenit.Text);
-                string maxIdQuery = "SELECT MAX(Id) FROM Clienti";
-                OleDbCommand maxIdCommand = new OleDbCommand(maxIdQuery, conn);
-                object result = maxIdCommand.ExecuteScalar();
-                int maxId = (result == DBNull.Value) ? 0 : System.Convert.ToInt32(result);
-                client.Id = maxId + 1;
-                string insertQuery = "INSERT INTO Clienti (Nume, Prenume, Telefon, CNP, Email, Judet, LocSec, Adresa, Venit, DataCreare) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-                OleDbCommand insertCommand = new OleDbCommand(insertQuery, conn);
-                insertCommand.Parameters.AddWithValue("?", client.Nume);
-                insertCommand.Parameters.AddWithValue("?", client.Prenume);
-                insertCommand.Parameters.AddWithValue("?", client.Telefon);
-                insertCommand.Parameters.AddWithValue("?", client.CNP);
-                insertCommand.Parameters.AddWithValue("?", client.Email);
-                insertCommand.Parameters.AddWithValue("?", client.Judet);
-                insertCommand.Parameters.AddWithValue("?", client.LocSec);
-                insertCommand.Parameters.AddWithValue("?", client.Adresa);
-                insertCommand.Parameters.AddWithValue("?", client.Venit);
-                insertCommand.Parameters.AddWithValue("?", client.DataCreare);
+                try
+                {
+                    var conn = new OleDbConnection(connString);
+                    conn.Open();
 
-                insertCommand.ExecuteNonQuery();
-                MessageBox.Show("Client adăugat cu succes!");
-                client.Id = maxId + 1;
-                StareClient.IdClientCurent = client.Id;
-               
-                // Clear the text boxes after adding the client
-                rtcNume.Text = "";
-                rtcPrenume.Text = "";
-                rtcTelefon.Text = "";
-                rtcJudet.Text = "";
-                rtcCNP.Text = "";
-                rtcEmail.Text = "";
-                rtcAdresa.Text = "";
-                rtcLocSec.Text = "";
-                conn.Close();
+                    /* 1️⃣  INSERT fără coloana-cheie (Id este AutoNumber) */
+                    const string sqlIns =
+                        @"INSERT INTO Clienti
+              (Nume, Prenume, Telefon, CNP, Email,
+               Judet, LocSec, Adresa, Venit, DataCreare)
+              VALUES (?,?,?,?,?,?,?,?,?,?)";
+
+                    using (var cmdIns = new OleDbCommand(sqlIns, conn))
+                    {
+                        cmdIns.Parameters.AddWithValue("?", rtcNume.Text);
+                        cmdIns.Parameters.AddWithValue("?", rtcPrenume.Text);
+                        cmdIns.Parameters.AddWithValue("?", rtcTelefon.Text);
+                        cmdIns.Parameters.AddWithValue("?", rtcCNP.Text);
+                        cmdIns.Parameters.AddWithValue("?", rtcEmail.Text);
+                        cmdIns.Parameters.AddWithValue("?", rtcJudet.Text);
+                        cmdIns.Parameters.AddWithValue("?", rtcLocSec.Text);
+                        cmdIns.Parameters.AddWithValue("?", rtcAdresa.Text);
+                        cmdIns.Parameters.AddWithValue("?", dlcVenit.Text);
+                        cmdIns.Parameters.AddWithValue("?", DateTime.Now);
+                        cmdIns.ExecuteNonQuery();
+                    }
+
+                    /* 2️⃣  ID-ul nou – concurrent-safe cu @@IDENTITY  */
+                    int newClientId;
+                    using (var cmdId = new OleDbCommand("SELECT @@IDENTITY", conn))
+                    {
+                        newClientId = System.Convert.ToInt32(cmdId.ExecuteScalar());
+                    }
+
+                    /* 3️⃣  Scriem contextul comun  */
+                    const string sqlCtx =
+                        "UPDATE DateActuale SET IdClientActual = ? WHERE ID = 1";
+
+                    using (var cmdCtx = new OleDbCommand(sqlCtx, conn))
+                    {
+                        cmdCtx.Parameters.AddWithValue("?", newClientId);
+                        cmdCtx.ExecuteNonQuery();
+                    }
+
+                    MessageBox.Show("Client adăugat cu succes!");
+
+                    /* 4️⃣  Golește controalele */
+                    rtcNume.Text = rtcPrenume.Text = rtcTelefon.Text = rtcJudet.Text =
+                    rtcCNP.Text = rtcEmail.Text = rtcAdresa.Text = rtcLocSec.Text = "";
+
+                    conn.Close();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Eroare la salvarea clientului: " + ex.Message);
+                }
+
+                
             }
 
         }
