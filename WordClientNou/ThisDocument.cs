@@ -16,7 +16,6 @@ using System.Runtime.InteropServices;
 using System.Drawing;
 using System.IO;
 using System.IO.Pipes;
-using Microsoft.Office.Interop.PowerPoint;
 
 
 namespace WordClientNou
@@ -25,6 +24,7 @@ namespace WordClientNou
     {
         Button btnAdaugareClient;
         Button btnPowerpoint;
+        Button btnVizualizareContract;
         
         string connString = @"Provider=Microsoft.ACE.OLEDB.12.0;Data Source=C:\Users\anama\source\repos\ProiectIPLA\WordClientNou\IPLAproiect.accdb";
         string ImageFolder =@"C:\Users\anama\source\repos\ProiectIPLA\WordClientNou\ImaginiDB";
@@ -39,8 +39,13 @@ namespace WordClientNou
             btnPowerpoint.Text = "Deschide Catalogul cu Oferte";
             btnPowerpoint.Click += new EventHandler(btnPowerpoint_Click);
 
+            btnVizualizareContract = new Button();
+            btnVizualizareContract.Text = "Vizualizati Contractul";
+            btnVizualizareContract.Click += new EventHandler(btnVizualizareContract_Click);
+
             Globals.ThisDocument.ActionsPane.Controls.Add(btnAdaugareClient);
             Globals.ThisDocument.ActionsPane.Controls.Add(btnPowerpoint);
+            Globals.ThisDocument.ActionsPane.Controls.Add(btnVizualizareContract);
 
             // la deschiderea documentului, clientul actual este resetat
             var conn = new OleDbConnection(connString);
@@ -51,6 +56,100 @@ namespace WordClientNou
                 cmd.ExecuteNonQuery();
             }
             conn.Close();
+        }
+
+        private void btnAdaugareClient_Click(object sender, EventArgs e)
+        {
+            if (string.IsNullOrEmpty(rtcNume.Text) || string.IsNullOrEmpty(rtcPrenume.Text) || string.IsNullOrEmpty(rtcTelefon.Text)
+                || string.IsNullOrEmpty(rtcJudet.Text) || string.IsNullOrEmpty(rtcCNP.Text) || string.IsNullOrEmpty(rtcEmail.Text)
+                || string.IsNullOrEmpty(rtcAdresa.Text) || string.IsNullOrEmpty(rtcLocSec.Text) || string.IsNullOrEmpty(dlcVenit.Text))
+            {
+                MessageBox.Show("Vă rugăm să completați toate câmpurile.");
+                return;
+            }
+            else if (rtcCNP.Text.Length != 13)
+            {
+                MessageBox.Show("CNP-ul trebuie să aibă 13 caractere.");
+                return;
+            }
+            else if (rtcTelefon.Text.Length != 10)
+            {
+                MessageBox.Show("Numărul de telefon trebuie să aibă 10 caractere.");
+                return;
+            }
+            else if (!System.Text.RegularExpressions.Regex.IsMatch(rtcEmail.Text, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
+            {
+                MessageBox.Show("Adresa de email nu este validă.");
+                return;
+            }
+            else if (!System.Text.RegularExpressions.Regex.IsMatch(rtcCNP.Text, @"^\d+$"))
+            {
+                MessageBox.Show("CNP-ul trebuie să conțină doar cifre.");
+                return;
+            }
+            else
+            {
+                Client client = new Client(rtcNume.Text, rtcPrenume.Text, rtcTelefon.Text, rtcJudet.Text, rtcCNP.Text, rtcEmail.Text, rtcAdresa.Text, rtcLocSec.Text, dlcVenit.Text);
+                try
+                {
+                    var conn = new OleDbConnection(connString);
+                    conn.Open();
+
+                    /* 1️⃣  INSERT fără coloana-cheie (Id este AutoNumber) */
+                    const string sqlIns =
+                        @"INSERT INTO Clienti
+              (Nume, Prenume, Telefon, CNP, Email,
+               Judet, LocSec, Adresa, Venit, DataCreare)
+              VALUES (?,?,?,?,?,?,?,?,?,?)";
+
+                    using (var cmdIns = new OleDbCommand(sqlIns, conn))
+                    {
+                        cmdIns.Parameters.AddWithValue("?", rtcNume.Text);
+                        cmdIns.Parameters.AddWithValue("?", rtcPrenume.Text);
+                        cmdIns.Parameters.AddWithValue("?", rtcTelefon.Text);
+                        cmdIns.Parameters.AddWithValue("?", rtcCNP.Text);
+                        cmdIns.Parameters.AddWithValue("?", rtcEmail.Text);
+                        cmdIns.Parameters.AddWithValue("?", rtcJudet.Text);
+                        cmdIns.Parameters.AddWithValue("?", rtcLocSec.Text);
+                        cmdIns.Parameters.AddWithValue("?", rtcAdresa.Text);
+                        cmdIns.Parameters.AddWithValue("?", dlcVenit.Text);
+                        cmdIns.Parameters.AddWithValue("?", DateTime.Now);
+                        cmdIns.ExecuteNonQuery();
+                    }
+
+                    /* 2️⃣  ID-ul nou – concurrent-safe cu @@IDENTITY  */
+                    int newClientId; // are eroare daca e "long"
+                    using (var cmdId = new OleDbCommand("SELECT @@IDENTITY", conn))
+                    {
+                        newClientId = System.Convert.ToInt32(cmdId.ExecuteScalar());
+                    }
+
+                    /* 3️⃣  Scriem contextul comun  */
+                    const string sqlCtx =
+                        "UPDATE DateActuale SET IdClientActual = ? WHERE ID = 1";
+
+                    using (var cmdCtx = new OleDbCommand(sqlCtx, conn))
+                    {
+                        cmdCtx.Parameters.AddWithValue("?", newClientId);
+                        cmdCtx.ExecuteNonQuery();
+                    }
+
+                    MessageBox.Show("Client adăugat cu succes!");
+
+                    /* 4️⃣  Golește controalele */
+                    rtcNume.Text = rtcPrenume.Text = rtcTelefon.Text = rtcJudet.Text =
+                    rtcCNP.Text = rtcEmail.Text = rtcAdresa.Text = rtcLocSec.Text = "";
+
+                    conn.Close();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Eroare la salvarea clientului: " + ex.Message);
+                }
+
+
+            }
+
         }
 
         private void btnPowerpoint_Click(object sender, EventArgs e)
@@ -241,103 +340,17 @@ namespace WordClientNou
             rngDet.ParagraphFormat.Alignment = PowerPoint.PpParagraphAlignment.ppAlignLeft;
         }
 
-        private void btnAdaugareClient_Click(object sender, EventArgs e)
+        private void btnVizualizareContract_Click(object sender, EventArgs e)
         {
-            if(string.IsNullOrEmpty(rtcNume.Text) || string.IsNullOrEmpty(rtcPrenume.Text) || string.IsNullOrEmpty(rtcTelefon.Text)
-                || string.IsNullOrEmpty(rtcJudet.Text) || string.IsNullOrEmpty(rtcCNP.Text) || string.IsNullOrEmpty(rtcEmail.Text)
-                || string.IsNullOrEmpty(rtcAdresa.Text) || string.IsNullOrEmpty(rtcLocSec.Text) || string.IsNullOrEmpty(dlcVenit.Text))
-            {
-                MessageBox.Show("Vă rugăm să completați toate câmpurile.");
-                return;
-            }
-            else if (rtcCNP.Text.Length != 13)
-            {
-                MessageBox.Show("CNP-ul trebuie să aibă 13 caractere.");
-                return;
-            }
-            else if (rtcTelefon.Text.Length != 10)
-            {
-                MessageBox.Show("Numărul de telefon trebuie să aibă 10 caractere.");
-                return;
-            }
-            else if (!System.Text.RegularExpressions.Regex.IsMatch(rtcEmail.Text, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
-            {
-                MessageBox.Show("Adresa de email nu este validă.");
-                return;
-            }
-            else if (!System.Text.RegularExpressions.Regex.IsMatch(rtcCNP.Text, @"^\d+$"))
-            {
-                MessageBox.Show("CNP-ul trebuie să conțină doar cifre.");
-                return;
-            }
-            else
-            {
-                Client client = new Client(rtcNume.Text, rtcPrenume.Text, rtcTelefon.Text, rtcJudet.Text, rtcCNP.Text, rtcEmail.Text, rtcAdresa.Text, rtcLocSec.Text, dlcVenit.Text);
-                try
-                {
-                    var conn = new OleDbConnection(connString);
-                    conn.Open();
-
-                    /* 1️⃣  INSERT fără coloana-cheie (Id este AutoNumber) */
-                    const string sqlIns =
-                        @"INSERT INTO Clienti
-              (Nume, Prenume, Telefon, CNP, Email,
-               Judet, LocSec, Adresa, Venit, DataCreare)
-              VALUES (?,?,?,?,?,?,?,?,?,?)";
-
-                    using (var cmdIns = new OleDbCommand(sqlIns, conn))
-                    {
-                        cmdIns.Parameters.AddWithValue("?", rtcNume.Text);
-                        cmdIns.Parameters.AddWithValue("?", rtcPrenume.Text);
-                        cmdIns.Parameters.AddWithValue("?", rtcTelefon.Text);
-                        cmdIns.Parameters.AddWithValue("?", rtcCNP.Text);
-                        cmdIns.Parameters.AddWithValue("?", rtcEmail.Text);
-                        cmdIns.Parameters.AddWithValue("?", rtcJudet.Text);
-                        cmdIns.Parameters.AddWithValue("?", rtcLocSec.Text);
-                        cmdIns.Parameters.AddWithValue("?", rtcAdresa.Text);
-                        cmdIns.Parameters.AddWithValue("?", dlcVenit.Text);
-                        cmdIns.Parameters.AddWithValue("?", DateTime.Now);
-                        cmdIns.ExecuteNonQuery();
-                    }
-
-                    /* 2️⃣  ID-ul nou – concurrent-safe cu @@IDENTITY  */
-                    int newClientId;
-                    using (var cmdId = new OleDbCommand("SELECT @@IDENTITY", conn))
-                    {
-                        newClientId = System.Convert.ToInt32(cmdId.ExecuteScalar());
-                    }
-
-                    /* 3️⃣  Scriem contextul comun  */
-                    const string sqlCtx =
-                        "UPDATE DateActuale SET IdClientActual = ? WHERE ID = 1";
-
-                    using (var cmdCtx = new OleDbCommand(sqlCtx, conn))
-                    {
-                        cmdCtx.Parameters.AddWithValue("?", newClientId);
-                        cmdCtx.ExecuteNonQuery();
-                    }
-
-                    MessageBox.Show("Client adăugat cu succes!");
-
-                    /* 4️⃣  Golește controalele */
-                    rtcNume.Text = rtcPrenume.Text = rtcTelefon.Text = rtcJudet.Text =
-                    rtcCNP.Text = rtcEmail.Text = rtcAdresa.Text = rtcLocSec.Text = "";
-
-                    conn.Close();
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show("Eroare la salvarea clientului: " + ex.Message);
-                }
-
-                
-            }
-
+            FormSelectieContract form = new FormSelectieContract();
+            form.StartPosition = FormStartPosition.CenterScreen;
+            form.TopMost = true;
+            form.ShowDialog();
         }
 
         private void ThisDocument_Shutdown(object sender, System.EventArgs e)
         {
-            //pipe.Close();
+            
         }
 
         #region VSTO Designer generated code
