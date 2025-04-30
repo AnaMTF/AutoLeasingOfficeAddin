@@ -18,11 +18,13 @@ namespace WordClientNou.Models
         public int NrLocuri { get; set; }      // 2‑9
         public string StatusOferta { get; set; }      // Disponibil, Indisponibil
         public string NumePoza { get; set; }      // numele imaginii
+        public string Culoare { get; set; }      // culoarea mașinii
+        public int AnFabricatie { get; set; }      // anul fabricatiei
 
         public Oferta() { }
         public Oferta(string numeMasina, string marca, string tipCarburant,
             int durataMinima, decimal pretZi, int kilometraj, int nrLocuri,
-            string statusOferta)
+            string statusOferta, string culoare, int anFabricatie)
         {
             NumeMasina = numeMasina;
             Marca = marca;
@@ -32,6 +34,8 @@ namespace WordClientNou.Models
             Kilometraj = kilometraj;
             NrLocuri = nrLocuri;
             StatusOferta = statusOferta;
+            Culoare = culoare;
+            AnFabricatie = anFabricatie;
         }
 
         public override string ToString() =>

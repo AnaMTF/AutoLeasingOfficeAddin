@@ -246,7 +246,9 @@ namespace WordClientNou
                             Kilometraj = r.GetInt32(r.GetOrdinal("Kilometraj")),
                             NrLocuri = r.GetInt32(r.GetOrdinal("NrLocuri")),
                             StatusOferta = r.GetString(r.GetOrdinal("StatusOferta")),
-                            NumePoza = r.GetString(r.GetOrdinal("Poza"))
+                            NumePoza = r.GetString(r.GetOrdinal("Poza")),
+                            Culoare = r.GetString(r.GetOrdinal("Culoare")),
+                            AnFabricatie = r.GetInt32(r.GetOrdinal("AnFabricatie"))
                         };
                         list.Add(o);
                     }
@@ -334,7 +336,7 @@ namespace WordClientNou
 
             var rngDet = detalii.TextFrame.TextRange;
             rngDet.Text = $"Durată minimă: {of.DurataMinima} zile | Tarif: {of.PretZi:C}/zi\n" +
-                          $"Carburant: {of.TipCarburant} | Locuri: {of.NrLocuri} | Km incluși/zi: {of.Kilometraj}";
+                          $"Carburant: {of.TipCarburant} | Locuri: {of.NrLocuri} | Culoare: {of.Culoare} | Anul de Fabricatie: {of.AnFabricatie} | Kilometraj: {of.Kilometraj}";
             rngDet.Font.Size = 18;
             rngDet.Font.Color.RGB = ColorTranslator.ToOle(Color.Black);
             rngDet.ParagraphFormat.Alignment = PowerPoint.PpParagraphAlignment.ppAlignLeft;
