@@ -1,0 +1,15 @@
+[
+  {
+    "Name": "WordSiPowerPoint",
+    "Projects": [
+      {
+        "Path": "WordClientNou\\WordClientNou.csproj",
+        "Action": "Start"
+      },
+      {
+        "Path": "PowerPointCatalog\\PowerPointCatalog.csproj",
+        "Action": "Start"
+      }
+    ]
+  }
+]
