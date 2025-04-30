@@ -132,8 +132,6 @@ namespace WordClientNou
                 pgh.Range.InsertParagraphAfter();
             }
 
-            /*────────  PDF SECTION → WORD  ────────*/
-
             /* PARTIES */
             Para("VEHICLE LEASE AGREEMENT", 18, true,
                  Word.WdParagraphAlignment.wdAlignParagraphCenter, 12);
@@ -146,16 +144,16 @@ namespace WordClientNou
                + $"(\"Lessee\").", 10, false);
 
             /* VEHICLE SPECIFICATIONS –  table 2 col x 7 rânduri */
-            Para("VEHICLE SPECIFICATIONS", 12, true, Word.WdParagraphAlignment.wdAlignParagraphLeft, 3);
+            Para("VEHICLE SPECIFICATIONS", 12, true, Word.WdParagraphAlignment.wdAlignParagraphCenter , 3);
 
-            var tbl = doc.Tables.Add(doc.Content.Paragraphs.Add().Range, 7, 2);
-            tbl.Columns[1].Width = 150; tbl.Columns[2].Width = 350;
+            var tbl = doc.Tables.Add(doc.Content.Paragraphs.Add().Range, 6, 2);
+            tbl.Columns[1].Width = 150; tbl.Columns[2].Width = 150;
             void Cell(int r, string key, string val)
             { tbl.Cell(r, 1).Range.Text = key; tbl.Cell(r, 2).Range.Text = val; }
 
             Cell(1, "Marca", ro["Marca"].ToString());
             Cell(2, "Model", ro["NumeMasina"].ToString());
-            Cell(3, "Tip de Carburant", ro["TipCarburant"].ToString());      // adaptează dacă ai BodyType
+            Cell(3, "Tip de Carburant", ro["TipCarburant"].ToString());
             Cell(4, "Body Color", ro["Culoare"].ToString());
             Cell(5, "Year", ro["AnFabricatie"].ToString());
             Cell(6, "Mileage", $"{ro["Kilometraj"]} km");
@@ -163,15 +161,37 @@ namespace WordClientNou
             tbl.Range.ParagraphFormat.Alignment = Word.WdParagraphAlignment.wdAlignParagraphLeft;
             tbl.Borders.Enable = 1;
 
+            //swicth case in functie de venit se schimba avansul
+            string tipVenit = rc["Venit"].ToString();
+            decimal avans = 0.1m;
+            if (tipVenit == "Sub 5.000 RON")
+            {
+                avans = 0.2m;
+            }
+            else if (tipVenit == "5.000 RON - 10.000 RON")
+            {
+                avans = 0.25m;
+            }
+            else if (tipVenit == "10.000 RON - 20.000 RON")
+            {
+                avans = 0.35m;
+            }
+            else if (tipVenit == "Peste 20.000 RON")
+            {
+                avans = 0.45m;
+            }
+
             /* PAYMENT AND TERMS */
             Para("PAYMENT AND PAYMENT TERMS", 12, true);
             decimal price = Convert.ToDecimal(ro["PretZi"]);
-            Para($"Leasing price: {price:0} lei/zi; plata în numerar sau transfer bancar catre banca ING cu ibanu RO31INGB0000999908030304."
-               + $"  Depozit de garanţie (non-refundable): {price * 0.2m:0} lei.");
+            int zile = Convert.ToInt32(ro["DurataMinima"]);
+            decimal pretTotal = price * zile;
+            Para($"Leasing price: {price:0} lei/zi reprezentând: {pretTotal:0}; plata în numerar sau transfer bancar catre banca ING cu ibanu RO31INGB0000999908030304."
+               + $"  Depozit de garanţie (non-refundable): {pretTotal * avans:0} lei.");
 
             /* AGREEMENT DURATION */
             Para("AGREEMENT DURATION", 12, true);
-            int zile = Convert.ToInt32(ro["DurataMinima"]);
+            
             DateTime end = effective.AddDays(zile);
             Para($"Perioada începe la {effective:dd.MM.yyyy} şi se termină la {end:dd.MM.yyyy}.");
 
