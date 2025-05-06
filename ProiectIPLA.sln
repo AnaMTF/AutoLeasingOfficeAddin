@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WordClientNou", "WordClient
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PowerPointCatalog", "PowerPointCatalog\PowerPointCatalog.csproj", "{747DCCBB-8608-4F2E-A529-E69F245E4735}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExcelPlanFinanciar", "ExcelPlanFinanciar\ExcelPlanFinanciar.csproj", "{9ACF557E-03AF-45B2-A158-C556DC76AB0A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{747DCCBB-8608-4F2E-A529-E69F245E4735}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{747DCCBB-8608-4F2E-A529-E69F245E4735}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{747DCCBB-8608-4F2E-A529-E69F245E4735}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9ACF557E-03AF-45B2-A158-C556DC76AB0A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9ACF557E-03AF-45B2-A158-C556DC76AB0A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9ACF557E-03AF-45B2-A158-C556DC76AB0A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9ACF557E-03AF-45B2-A158-C556DC76AB0A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

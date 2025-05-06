@@ -9,6 +9,10 @@
       {
         "Path": "PowerPointCatalog\\PowerPointCatalog.csproj",
         "Action": "Start"
+      },
+      {
+        "Path": "ExcelPlanFinanciar\\ExcelPlanFinanciar.csproj",
+        "Action": "Start"
       }
     ]
   }

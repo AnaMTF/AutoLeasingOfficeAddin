@@ -12,6 +12,7 @@ using WordClientNou.Models;
 using Office = Microsoft.Office.Core;
 using Word = Microsoft.Office.Interop.Word;
 using PowerPoint = Microsoft.Office.Interop.PowerPoint;
+using Excel = Microsoft.Office.Interop.Excel;
 using System.Runtime.InteropServices;
 using System.Drawing;
 using System.IO;
@@ -25,6 +26,7 @@ namespace WordClientNou
         Button btnAdaugareClient;
         Button btnPowerpoint;
         Button btnVizualizareContract;
+        Button btnExcelPlanFinanciar;
         
         string connString = @"Provider=Microsoft.ACE.OLEDB.12.0;Data Source=C:\Users\anama\source\repos\ProiectIPLA\WordClientNou\IPLAproiect.accdb";
         string ImageFolder =@"C:\Users\anama\source\repos\ProiectIPLA\WordClientNou\ImaginiDB";
@@ -32,20 +34,31 @@ namespace WordClientNou
         private void ThisDocument_Startup(object sender, System.EventArgs e)
         {
             btnAdaugareClient = new Button();
-            btnAdaugareClient.Text = "Adauga Client";
+            btnAdaugareClient.Text = "PAS 1. Adauga Client";
             btnAdaugareClient.Click += new EventHandler(btnAdaugareClient_Click);
 
             btnPowerpoint = new Button();
-            btnPowerpoint.Text = "Deschide Catalogul cu Oferte";
+            btnPowerpoint.Text = "PAS 2. Deschide Catalogul cu Oferte";
             btnPowerpoint.Click += new EventHandler(btnPowerpoint_Click);
 
             btnVizualizareContract = new Button();
-            btnVizualizareContract.Text = "Vizualizati Contractul";
+            btnVizualizareContract.Text = "PAS 3. Vizualizati Contractul";
             btnVizualizareContract.Click += new EventHandler(btnVizualizareContract_Click);
+
+            btnExcelPlanFinanciar = new Button();
+            btnExcelPlanFinanciar.Text = "PAS 4. Deschide Planul Financiar";
+            btnExcelPlanFinanciar.Click += new EventHandler(btnExcelPlanFinanciar_Click);
+
+            // setam dimensiunile butoanelor
+            btnAdaugareClient.Size = new Size(200, 30);
+            btnPowerpoint.Size = new Size(200, 30);
+            btnVizualizareContract.Size = new Size(200, 30);
+            btnExcelPlanFinanciar.Size = new Size(200, 30);
 
             Globals.ThisDocument.ActionsPane.Controls.Add(btnAdaugareClient);
             Globals.ThisDocument.ActionsPane.Controls.Add(btnPowerpoint);
             Globals.ThisDocument.ActionsPane.Controls.Add(btnVizualizareContract);
+            Globals.ThisDocument.ActionsPane.Controls.Add(btnExcelPlanFinanciar);
 
             // la deschiderea documentului, clientul actual este resetat
             var conn = new OleDbConnection(connString);
@@ -348,6 +361,120 @@ namespace WordClientNou
             form.StartPosition = FormStartPosition.CenterScreen;
             form.TopMost = true;
             form.ShowDialog();
+        }
+
+        private void btnExcelPlanFinanciar_Click(object sender, EventArgs e)
+        {
+            /* -- id-uri curente (demo: fixe) ---------------------------------- */
+            int idClient = 2, idOferta = 3;
+            if (idClient <= 0 || idOferta <= 0)
+            { MessageBox.Show("Selectaţi mai întâi clientul şi oferta."); return; }
+
+            /* -- date din Access --------------------------------------------- */
+            string nume = "", prenume = "", venit = ""; decimal pretZi = 0; int durata = 0;
+            using (var con = new OleDbConnection(connString))
+            {
+                con.Open();
+                var c = new OleDbCommand("SELECT Nume,Prenume,Venit FROM Clienti WHERE Id=?", con);
+                c.Parameters.AddWithValue("?", idClient);
+                var rc = c.ExecuteReader();
+                if (rc.Read()) { nume = rc.GetString(0); prenume = rc.GetString(1); venit = rc.GetString(2); }
+
+                var o = new OleDbCommand("SELECT PretZi,DurataMinima FROM Oferte WHERE IdOferta=?", con);
+                o.Parameters.AddWithValue("?", idOferta);
+                var ro = o.ExecuteReader();
+                if (ro.Read()) { pretZi = ro.GetDecimal(0); durata = ro.GetInt32(1); }
+            }
+
+            // With this equivalent code that does not use the 'switch' expression:
+            decimal avansPct;
+            if (venit == "Sub 5.000 RON")
+            {
+                avansPct = 0.20m;
+            }
+            else if (venit == "5.000 RON - 10.000 RON")
+            {
+                avansPct = 0.25m;
+            }
+            else if (venit == "10.000 RON - 20.000 RON")
+            {
+                avansPct = 0.35m;
+            }
+            else if (venit == "Peste 20.000 RON")
+            {
+                avansPct = 0.45m;
+            }
+            else
+            {
+                avansPct = 0.10m;
+            }
+
+            decimal costTotal = pretZi * durata;
+            decimal garantie = costTotal * avansPct;
+
+            /* -- porneşte / ataşează Excel ----------------------------------- */
+            Excel.Application exApp;
+            try { exApp = (Excel.Application)Marshal.GetActiveObject("Excel.Application"); }
+            catch { exApp = new Excel.Application(); }
+            exApp.Visible = true;
+
+            Excel.Workbook wb = exApp.Workbooks.Add();
+            Excel.Worksheet ws = wb.Worksheets[1];
+            ws.Name = "Date Actuale";
+
+            /* -- tabel -------------------------------------------------------- */
+            string[] label = { "Client", "Venit", "Tarif/zi", "Durata (zile)",
+                       "Cost total", "Procent garanţie", "Garanţie (lei)" };
+            for (int i = 0; i < label.Length; i++)
+                ws.Cells[i + 1, 1] = label[i];
+
+            ws.Range["A1:A7"].Font.Bold = true;
+
+            ws.Range["B1"].Value2 = $"{nume} {prenume}";
+            ws.Range["B2"].Value2 = venit;
+            ws.Range["B3"].Value2 = pretZi;
+            ws.Range["B4"].Value2 = durata;
+            ws.Range["B5"].Value2 = costTotal;
+            ws.Range["B6"].Value2 = avansPct;
+            ws.Range["B7"].Value2 = garantie;
+
+            
+            ws.Range["B6"].NumberFormat = "0%";
+
+            /* lăţimi fixe – alternativ la AutoFit */
+            ws.Columns["A"].ColumnWidth = 18;
+            ws.Columns["B"].ColumnWidth = 14;
+
+            /* borduri + aliniere */
+            Excel.Range tbl = ws.Range["A1:B7"];
+            tbl.Borders.LineStyle = Excel.XlLineStyle.xlContinuous;
+            tbl.Borders.Weight = Excel.XlBorderWeight.xlThin;
+            tbl.HorizontalAlignment = Excel.XlHAlign.xlHAlignCenter;
+            tbl.VerticalAlignment = Excel.XlVAlign.xlVAlignCenter;
+            tbl.Font.Size = 11;
+
+            /* antet violet */
+            ws.Range["A1:B1"].Interior.Color = 0xD9D2E9;
+
+            /* -- grafic Cost total vs Garanţie (fără procent) ----------------- */
+            Excel.ChartObjects chs = (Excel.ChartObjects)ws.ChartObjects();
+            Excel.ChartObject chObj = chs.Add(300, 40, 380, 240);
+            Excel.Chart ch = chObj.Chart;
+            ch.ChartType = Excel.XlChartType.xlColumnClustered;
+
+            /* serie 1 – Cost total */
+            ch.SetSourceData(ws.Range["B5"]);              // celula B5
+            ch.SeriesCollection(1).XValues = ws.Range["A5"];
+            ch.SeriesCollection(1).Name = "Cost total";
+
+            /* serie 2 – Garanţie */
+            Excel.Series s2 = ch.SeriesCollection().NewSeries();
+            s2.Values = ws.Range["B7"];
+            s2.XValues = ws.Range["A7"];
+            s2.Name = "Garanţie";
+
+            ch.HasTitle = true;
+            ch.ChartTitle.Text = "Cost total vs Garanţie";
         }
 
         private void ThisDocument_Shutdown(object sender, System.EventArgs e)
