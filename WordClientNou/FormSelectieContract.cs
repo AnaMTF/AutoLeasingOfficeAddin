@@ -11,7 +11,6 @@ namespace WordClientNou
     {
         private readonly string connString =
             @"Provider=Microsoft.ACE.OLEDB.12.0;Data Source=C:\Users\anama\source\repos\ProiectIPLA\WordClientNou\IPLAproiect.accdb";
-        /*──────── helper pentru ComboBox ofertă ────────*/
         private sealed class OfertaCombo
         {
             public int IdOferta;
@@ -26,7 +25,7 @@ namespace WordClientNou
             comboBoxClienti.SelectedIndexChanged += (_, __) => getOferta();
         }
 
-        /*──────────────────────── clienţi ────────────────────────*/
+        //lsta cu clientii
         private void getClienti()
         {
             comboBoxClienti.Items.Clear();
@@ -44,7 +43,7 @@ namespace WordClientNou
             con.Close();
         }
 
-        /*──────────────────────── oferte pentru clientul selectat ────────────────────────*/
+        //oferte pentru clientul selectat
         private void getOferta()
         {
             comboBoxOferta.Items.Clear();
@@ -80,10 +79,8 @@ namespace WordClientNou
             con.Close();
         }
 
-        /*──────────────────────── Confirmă ────────────────────────*/
         private void buttonConfirma_Click(object sender, EventArgs e)
         {
-            /*──────────────── validare selecţii ───────────────*/
             if (comboBoxClienti.SelectedIndex == -1 || comboBoxOferta.SelectedIndex == -1)
             {
                 MessageBox.Show("Selectaţi un client şi o ofertă!");
@@ -96,12 +93,10 @@ namespace WordClientNou
             if (MessageBox.Show($"Generaţi contractul pentru {clientFull}?",
                 "Confirmare", MessageBoxButtons.OKCancel)!= DialogResult.OK) return;
 
-            /*──────────────── despărţim nume / prenume ────────*/
             string[] p = clientFull.Split(' ');
             string nume = p[0];
             string prenume = string.Join(" ", p.Skip(1));
 
-            /*──────────────── citim date din Access ───────────*/
             var db = new OleDbConnection(connString);
             db.Open();
 
@@ -116,43 +111,55 @@ namespace WordClientNou
             var ro = cmdO.ExecuteReader();
             if (!ro.Read()) { MessageBox.Show("Oferta inexistentă."); db.Close(); return; }
 
-            /*──────────────── Word Interop ─────────────────────*/
+            // generare word cu contract
             var word = new Word.Application { Visible = false };
             Word.Document doc = word.Documents.Add();
 
-            /*──────────────── TITLU ───────────────────────────*/
+            // titlu
             Word.Paragraph titlu = doc.Content.Paragraphs.Add();
             titlu.Range.Text = "\tCONTRACT DE LEASING AUTO";
-            titlu.Range.Font.Name = "Times New Roman";
+            titlu.Range.Font.Name = "Aptos";
             titlu.Range.Font.Size = 18;
             titlu.Range.Font.Bold = 1;
             titlu.Format.Alignment = Word.WdParagraphAlignment.wdAlignParagraphCenter;
             titlu.Format.SpaceAfter = 12;
             titlu.Range.InsertParagraphAfter();
 
-            /*──────────────── PĂRŢI CONTRACTANTE ──────────────*/
+            //parti contractante
+            Word.Paragraph subtParti = doc.Content.Paragraphs.Add();
+            subtParti.Range.Text = "\tArt. 1. PĂRȚILE CONTRACTANTE";
+            subtParti.Range.Font.Name = "Aptos";
+            subtParti.Range.Font.Size = 12;
+            subtParti.Range.Font.Bold = 1;
+            subtParti.Format.Alignment = Word.WdParagraphAlignment.wdAlignParagraphCenter;
+            subtParti.Format.SpaceAfter = 12;
+            subtParti.Range.InsertParagraphAfter();
+
             DateTime effective = Convert.ToDateTime(rc["DataCreare"]);
             Word.Paragraph partile = doc.Content.Paragraphs.Add();
             partile.Range.Text =
-                $"\tPrezentul contract este încheiat la data de {effective:dd.MM.yyyy} între COMPANIA ANA LEASING, " +
-                $"cu sediul în București (\"Locator\") şi {rc["Nume"]} {rc["Prenume"]}, CNP {rc["CNP"]}, " +
-                $"domiciliat în {rc["Judet"]}, {rc["LocSec"]}, {rc["Adresa"]} (\"Locatar\").";
+                $"\tPrezentul contract este încheiat la data de {effective:dd.MM.yyyy} între societatea comercială COMPANIA ANA LEASING, " +
+                $"cu sediul în Românie București Sector 3 str. Florilor nr. 25 tel. 0205551166 înmatriclată în Registrul Comerțului București " +
+                $" sub nr. J23/493/2005 având contul nr. RO31INGB0000999908030304 la Banca ING și codul fiscal nr. 255 prin reprezentantul legal Anamaria-Florentina Țițeche " +
+                $"având funcția director general cetățean român posesor al actului de identitate/pașaport nr. 6554488220039 (\"LOCATOR\") şi \n " +
+                $"civilul {rc["Nume"]} {rc["Prenume"]} cetățean român posesor al actului de identitate/pașaport nr.  {rc["CNP"]}, " +
+                $"domiciliat în {rc["Judet"]}, {rc["LocSec"]}, {rc["Adresa"]} (\"UTILIATOR\"). \n S-a încheiat prezentul contract.";
             partile.Range.Font.Name = "Times New Roman";
             partile.Range.Font.Size = 10;
             partile.Format.SpaceAfter = 12;
             partile.Range.InsertParagraphAfter();
 
-            /*──────────────── SUBTITLU SPECIFICAŢII ───────────*/
+            // subtitluy cu specificații vehicul
             Word.Paragraph subtVeh = doc.Content.Paragraphs.Add();
-            subtVeh.Range.Text = "\tSPECIFICAȚII VEHICUL";
-            subtVeh.Range.Font.Name = "Times New Roman";
+            subtVeh.Range.Text = "\tArt. 2. SPECIFICAȚII VEHICUL";
+            subtVeh.Range.Font.Name = "Aptos";
             subtVeh.Range.Font.Size = 12;
             subtVeh.Range.Font.Bold = 1;
             subtVeh.Format.Alignment = Word.WdParagraphAlignment.wdAlignParagraphCenter;
             subtVeh.Format.SpaceAfter = 3;
             subtVeh.Range.InsertParagraphAfter();
 
-            /*──────────────── TABEL VEHICUL ───────────────────*/
+            // teabel cu detalii vehicul
             Word.Table tbl = doc.Tables.Add(doc.Content.Paragraphs.Add().Range, 6, 2);
             tbl.Columns[1].Width = 150; tbl.Columns[2].Width = 350;
             tbl.Cell(1, 1).Range.Text = "Marca"; tbl.Cell(1, 2).Range.Text = ro["Marca"].ToString();
@@ -165,13 +172,13 @@ namespace WordClientNou
             tbl.Range.ParagraphFormat.Alignment = Word.WdParagraphAlignment.wdAlignParagraphCenter;
             tbl.Borders.Enable = 1;
 
-            /* două rânduri goale după tabel */
+            //doua randuri goale dupa tabel
             Word.Range afterTbl = tbl.Range;
             afterTbl.Collapse(Word.WdCollapseDirection.wdCollapseEnd);
             afterTbl.InsertParagraphAfter();
             afterTbl.InsertParagraphAfter();
 
-            /*──────────────── calcul avans ────────────────────*/
+            //calcularea avansului
             string tipVenit = rc["Venit"].ToString();
             decimal avansPct = 0.1m;
             if (tipVenit == "Sub 5.000 RON")
@@ -187,10 +194,32 @@ namespace WordClientNou
             int zile = Convert.ToInt32(ro["DurataMinima"]);
             decimal total = tarifZi * zile;
 
-            /*──────────────── PLATĂ ŞI CONDIŢII ───────────────*/
+            // obiectul contractului
+            Word.Paragraph subtObiect = doc.Content.Paragraphs.Add();
+            subtObiect.Range.Text = "\tArt. 3. OBIECTUL CONTRACTULUI";
+            subtObiect.Range.Font.Name = "Aptos";
+            subtObiect.Range.Font.Size = 12;
+            subtObiect.Range.Font.Bold = 1;
+            subtObiect.Format.Alignment = Word.WdParagraphAlignment.wdAlignParagraphCenter;
+            subtObiect.Format.SpaceAfter = 12;
+            subtObiect.Range.InsertParagraphAfter();
+
+            Word.Paragraph txtObiect = doc.Content.Paragraphs.Add();
+            txtObiect.Range.Text = $"\tLOCATORUL COMPANIA ANA LEASING închiriază UTILIZATORULUI {rc["Nume"]} {rc["Prenume"]} vehiculul specificat la art. 2," +
+                $" iar UTILIZATORUL {rc["Nume"]} {rc["Prenume"]} se obligă să preia acest bun și să plătească " +
+                $"tariful stabilit la art. 4. LOCATORUL COMPANIA ANA LEASING se obligă să transmită UTILIZATORULUI {rc["Nume"]} {rc["Prenume"]} dreptul de folosință " +
+                $"și posesia unui automobil marca {ro["Marca"]} - {ro["NumeMasina"]}, având caracteristicile prezentate în art. 2." +
+                $" Tariful include TVA. Tariful nu include costurile de întreţinere, reparaţii, asigurări, " +
+                $"impozite, taxe şi alte cheltuieli legate de utilizarea vehiculului.";
+            txtObiect.Range.Font.Name = "Times New Roman";
+            txtObiect.Range.Font.Size = 10;
+            txtObiect.Format.SpaceAfter = 12;
+            txtObiect.Range.InsertParagraphAfter();
+
+            // plata si conditii
             Word.Paragraph subtPlata = doc.Content.Paragraphs.Add();
-            subtPlata.Range.Text = "\tPLATĂ ŞI CONDIŢII";
-            subtPlata.Range.Font.Name = "Times New Roman";
+            subtPlata.Range.Text = "\tArt. 4. PLATĂ ŞI CONDIŢII";
+            subtPlata.Range.Font.Name = "Aptos";
             subtPlata.Range.Font.Size = 12;
             subtPlata.Range.Font.Bold = 1;
             subtPlata.Format.Alignment = Word.WdParagraphAlignment.wdAlignParagraphCenter;
@@ -200,18 +229,19 @@ namespace WordClientNou
             Word.Paragraph txtPlata = doc.Content.Paragraphs.Add();
             txtPlata.Range.Text =
                 $"\tTarif: {tarifZi:0} lei/zi (total {total:0} lei). Plata se face numerar sau prin transfer bancar la ING – RO31INGB0000999908030304. " +
-                $"Depozit de garanţie: {(total * avansPct):0} lei.";
+                $"Depozit de garanţie: {(total * avansPct):0} lei. \n Transformarea obligațiilor de plată din valută în lei se face la cursul zilei afișat de BNR." +
+                $" Diferențele de curs dintre cel utilizat în facturi și cel din ziua încasării de către LOCATOR mai mari de 2% se regularizează de părți prin achitarea diferenței către partea dezavantajată.";
             txtPlata.Range.Font.Name = "Times New Roman";
             txtPlata.Range.Font.Size = 10;
             txtPlata.Format.SpaceAfter = 12;
             txtPlata.Range.InsertParagraphAfter();
 
-            /*──────────────── DURATA CONTRACTULUI ─────────────*/
+            // durata contractului
             DateTime end = effective.AddDays(zile);
 
             Word.Paragraph subtDur = doc.Content.Paragraphs.Add();
-            subtDur.Range.Text = "\tDURATA CONTRACTULUI";
-            subtDur.Range.Font.Name = "Times New Roman";
+            subtDur.Range.Text = "\tArt. 5. DURATA CONTRACTULUI";
+            subtDur.Range.Font.Name = "Aptos";
             subtDur.Range.Font.Size = 12;
             subtDur.Range.Font.Bold = 1;
             subtDur.Format.Alignment = Word.WdParagraphAlignment.wdAlignParagraphCenter;
@@ -225,10 +255,51 @@ namespace WordClientNou
             txtDur.Format.SpaceAfter = 12;
             txtDur.Range.InsertParagraphAfter();
 
-            /*──────────────── UTILIZAREA VEHICULULUI ──────────*/
+            //termen livrare
+            Word.Paragraph subtLiv = doc.Content.Paragraphs.Add();
+            subtLiv.Range.Text = "\tArt. 6. TERMEN DE LIVRARE";
+            subtLiv.Range.Font.Name = "Aptos";
+            subtLiv.Range.Font.Size = 12;
+            subtLiv.Range.Font.Bold = 1;
+            subtLiv.Format.Alignment = Word.WdParagraphAlignment.wdAlignParagraphCenter;
+            subtLiv.Format.SpaceAfter = 12;
+            subtLiv.Range.InsertParagraphAfter();
+
+            Word.Paragraph txtLiv = doc.Content.Paragraphs.Add();
+            txtLiv.Range.Text = $"\tUTILIZATORUL și-a ales obiectul leasingului în conformitate cu propriile necesități funcționale." +
+                $"\r\nTermenul de livrare este de cel mult 15 zile de la încasarea de către LOCATOR a ratei 1.";
+            txtLiv.Range.Font.Name = "Times New Roman";
+            txtLiv.Range.Font.Size = 10;
+            txtLiv.Format.SpaceAfter = 12;
+            txtLiv.Range.InsertParagraphAfter();
+
+            //predare - primire
+
+            Word.Paragraph subtPred = doc.Content.Paragraphs.Add();
+            subtPred.Range.Text = "\tArt. 7. PREDARE - PRIMIRE";
+            subtPred.Range.Font.Name = "Aptos";
+            subtPred.Range.Font.Size = 12;
+            subtPred.Range.Font.Bold = 1;
+            subtPred.Format.Alignment = Word.WdParagraphAlignment.wdAlignParagraphCenter;
+            subtPred.Format.SpaceAfter = 12;
+            subtPred.Range.InsertParagraphAfter();
+
+            Word.Paragraph txtPred = doc.Content.Paragraphs.Add();
+            txtPred.Range.Text = $"\tUTILIZATORUL va prelua obiectul leasingului în termenul prevăzut la art. 6. data exactă a predării-primirii fiind comunicată în scris de către LOCATOR.\r\n" +
+                $"Locul predării-primirii va fi București-Porsche Leasing Șos. PIPERA-TUNARI, CLĂDIREA PORSCHE 2 Voluntari\r\n\r\nPredarea-primirea obiectului leasingului se va face numai către reprezentantul autorizat al " +
+                $"UTILIZATORULUI la prezentarea de către acesta a împuternicirii de reprezentare.\r\nPredarea-primirea obiectului leasingului se consemnează într-un proces-verbal care atestă condiția conformă cu caracteristicile " +
+                $"tehnice și funcționalitățile obiectului leasingului.\r\nPerioada de leasing începe odată cu predarea-primirea. Dacă UTILIZATORUL întârzie preluarea obiectului leasingului, perioada de leasing va începe " +
+                $"în ziua în care trebuia efectuată predarea-primirea. În cazul neefectuării predării-primirii din vina uneia din părți, aceasta va suporta penalități de 0,5%.";
+
+            txtPred.Range.Font.Name = "Times New Roman";
+            txtPred.Range.Font.Size = 10;
+            txtPred.Format.SpaceAfter = 12;
+            txtPred.Range.InsertParagraphAfter();
+
+            // utilizarea vehiculului
             Word.Paragraph subtUtil = doc.Content.Paragraphs.Add();
-            subtUtil.Range.Text = "\tUTILIZAREA VEHICULULUI";
-            subtUtil.Range.Font.Name = "Times New Roman";
+            subtUtil.Range.Text = "\tArt. 8. UTILIZAREA VEHICULULUI";
+            subtUtil.Range.Font.Name = "Aptos";
             subtUtil.Range.Font.Size = 12;
             subtUtil.Range.Font.Bold = 1;
             subtUtil.Format.Alignment = Word.WdParagraphAlignment.wdAlignParagraphCenter;
@@ -236,16 +307,36 @@ namespace WordClientNou
             subtUtil.Range.InsertParagraphAfter();
 
             Word.Paragraph txtUtil = doc.Content.Paragraphs.Add();
-            txtUtil.Range.Text = "\tVehiculul poate fi folosit exclusiv în scop personal. Subînchirierea este interzisă.";
+            txtUtil.Range.Text = "\tVehiculul poate fi folosit exclusiv în scop personal. Subînchirierea este interzisă.LOCATORUL rămâne proprietarul obiectului leasingului pe toată durata contractului de leasing.\r\n" +
+                "Riscurile și beneficiile aferente dreptului de proprietate trec asupra UTILIZATORULUI din momentul predării-primirii obiectului leasingului.";
             txtUtil.Range.Font.Name = "Times New Roman";
             txtUtil.Range.Font.Size = 10;
             txtUtil.Format.SpaceAfter = 12;
             txtUtil.Range.InsertParagraphAfter();
 
-            /*──────────────── ÎNTÂRZIERE LA RETURNARE ─────────*/
+            //intarziere plata
+
+            Word.Paragraph subtIntarziere = doc.Content.Paragraphs.Add();
+            subtIntarziere.Range.Text = "\tArt. 9. ÎNTÂRZIEREA PLĂȚILOR";
+            subtIntarziere.Range.Font.Name = "Aptos";
+            subtIntarziere.Range.Font.Size = 12;
+            subtIntarziere.Range.Font.Bold = 1;
+            subtIntarziere.Format.Alignment = Word.WdParagraphAlignment.wdAlignParagraphCenter;
+            subtIntarziere.Format.SpaceAfter = 12;
+            subtIntarziere.Range.InsertParagraphAfter();
+
+            Word.Paragraph txtIntarziere = doc.Content.Paragraphs.Add();
+            txtIntarziere.Range.Text = $"\tÎn cazul întârzierii plății, UTILIZATORUL va plăti penalități de 0,5% pe zi de întârziere. " +
+                $"După 30 zile de întârziere, LOCATORUL poate rezilia contractul și solicita returnarea vehiculului.";
+            txtIntarziere.Range.Font.Name = "Times New Roman";
+            txtIntarziere.Range.Font.Size = 10;
+            txtIntarziere.Format.SpaceAfter = 12;
+            txtIntarziere.Range.InsertParagraphAfter();
+
+            // întârziere returnare
             Word.Paragraph subtLate = doc.Content.Paragraphs.Add();
-            subtLate.Range.Text = "\tÎNTÂRZIERE LA RETURNARE";
-            subtLate.Range.Font.Name = "Times New Roman";
+            subtLate.Range.Text = "\tArt. 10. ÎNTÂRZIERE LA RETURNARE";
+            subtLate.Range.Font.Name = "Aptos";
             subtLate.Range.Font.Size = 12;
             subtLate.Range.Font.Bold = 1;
             subtLate.Format.Alignment = Word.WdParagraphAlignment.wdAlignParagraphCenter;
@@ -253,16 +344,16 @@ namespace WordClientNou
             subtLate.Range.InsertParagraphAfter();
 
             Word.Paragraph txtLate = doc.Content.Paragraphs.Add();
-            txtLate.Range.Text = $"\tPenalizare: {tarifZi:0} lei pentru fiecare zi de întârziere.";
+            txtLate.Range.Text = $"\tPenalizare: {tarifZi:0} lei pentru fiecare zi de întârziere a returnării vehiculului.";
             txtLate.Range.Font.Name = "Times New Roman";
             txtLate.Range.Font.Size = 10;
             txtLate.Format.SpaceAfter = 12;
             txtLate.Range.InsertParagraphAfter();
 
-            /*──────────────── GARANŢII ŞI RESPONSABILITĂŢI ─────*/
+            // garanții și responsabilități
             Word.Paragraph subtGar = doc.Content.Paragraphs.Add();
-            subtGar.Range.Text = "\tGARANŢII ŞI RESPONSABILITĂŢI";
-            subtGar.Range.Font.Name = "Times New Roman";
+            subtGar.Range.Text = "\tArt. 11. GARANŢII ŞI RESPONSABILITĂŢI";
+            subtGar.Range.Font.Name = "Aptos";
             subtGar.Range.Font.Size = 12;
             subtGar.Range.Font.Bold = 1;
             subtGar.Format.Alignment = Word.WdParagraphAlignment.wdAlignParagraphCenter;
@@ -290,10 +381,10 @@ namespace WordClientNou
             gr3.Format.SpaceAfter = 12;
             gr3.Range.InsertParagraphAfter();
 
-            /*──────────────── RĂSPUNDERE ──────────────────────*/
+            // răspundere
             Word.Paragraph subtResp = doc.Content.Paragraphs.Add();
-            subtResp.Range.Text = "\tRĂSPUNDERE";
-            subtResp.Range.Font.Name = "Times New Roman";
+            subtResp.Range.Text = "\tArt. 12. RĂSPUNDERE";
+            subtResp.Range.Font.Name = "Aptos";
             subtResp.Range.Font.Size = 12;
             subtResp.Range.Font.Bold = 1;
             subtResp.Format.Alignment = Word.WdParagraphAlignment.wdAlignParagraphCenter;
@@ -301,16 +392,19 @@ namespace WordClientNou
             subtResp.Range.InsertParagraphAfter();
 
             Word.Paragraph txtResp = doc.Content.Paragraphs.Add();
-            txtResp.Range.Text = "\tPărţile răspund numai pentru prejudiciile directe cauzate celeilalte părţi.";
+            txtResp.Range.Text = "\tUTILIZATORUL își asumă riscul în cazurile deteriorării, daunei totale sau furtului neacoperite de polița de asigurare din vina sa, " +
+                "cât și în cazul uzurii premature a obiectului leasingului cu urmare a utilizării și întreținerii neconforme dispozițiilor art. 8.\r\nÎn caz de daună totală sau furt, " +
+                "LOCATORUL va returna UTILIZATORULUI, din suma totală a plăților efectuate de către acesta în cadrul contractului de leasing și contravaloarea despăgubirii " +
+                "de la societatea de asigurări, diferența ce depășește valoarea contractuală de leasing și însoțește încheierii unui nou contract de leasing.";
             txtResp.Range.Font.Name = "Times New Roman";
             txtResp.Range.Font.Size = 10;
             txtResp.Format.SpaceAfter = 12;
             txtResp.Range.InsertParagraphAfter();
 
-            /*──────────────── LITIGII ─────────────────────────*/
+            // litigii
             Word.Paragraph subtLit = doc.Content.Paragraphs.Add();
-            subtLit.Range.Text = "\tREZOLVAREA LITIGIILOR";
-            subtLit.Range.Font.Name = "Times New Roman";
+            subtLit.Range.Text = "\tArt. 13. DISPOZIȚII FINALE";
+            subtLit.Range.Font.Name = "Aptos";
             subtLit.Range.Font.Size = 12;
             subtLit.Range.Font.Bold = 1;
             subtLit.Format.Alignment = Word.WdParagraphAlignment.wdAlignParagraphCenter;
@@ -318,16 +412,17 @@ namespace WordClientNou
             subtLit.Range.InsertParagraphAfter();
 
             Word.Paragraph txtLit = doc.Content.Paragraphs.Add();
-            txtLit.Range.Text = "\tLitigiile se soluţionează amiabil; în caz contrar, de către instanţele competente din Bucureşti.";
+            txtLit.Range.Text = "\tLitigiile apărute în legătură cu formarea, validitatea, interpretarea sau executarea obligațiilor contractuale se soluționează pe cale amiabilă sau arbitrală" +
+                ". În lipsa unei clauze compromisorii, litigiile vor fi soluționate la instanțele judecătorești competente.\r\nPrezentul contract, inclusiv anexele, a fost încheiat în două exemplare, câte unul pentru fiecare parte.";
             txtLit.Range.Font.Name = "Times New Roman";
             txtLit.Range.Font.Size = 10;
             txtLit.Format.SpaceAfter = 12;
             txtLit.Range.InsertParagraphAfter();
 
-            /*──────────────── LEGEA APLICABILĂ ────────────────*/
+            // legea aplicabilă
             Word.Paragraph subtLege = doc.Content.Paragraphs.Add();
-            subtLege.Range.Text = "\tLEGEA APLICABILĂ";
-            subtLege.Range.Font.Name = "Times New Roman";
+            subtLege.Range.Text = "\tArt. 14. LEGEA APLICABILĂ";
+            subtLege.Range.Font.Name = "Aptos";
             subtLege.Range.Font.Size = 12;
             subtLege.Range.Font.Bold = 1;
             subtLege.Format.Alignment = Word.WdParagraphAlignment.wdAlignParagraphCenter;
@@ -341,10 +436,10 @@ namespace WordClientNou
             txtLege.Format.SpaceAfter = 12;
             txtLege.Range.InsertParagraphAfter();
 
-            /*──────────────── CONTRACT COMPLET ────────────────*/
+            // contract complet
             Word.Paragraph subtComp = doc.Content.Paragraphs.Add();
-            subtComp.Range.Text = "\tCONTRACT COMPLET";
-            subtComp.Range.Font.Name = "Times New Roman";
+            subtComp.Range.Text = "\tArt. 15. CONTRACT COMPLET";
+            subtComp.Range.Font.Name = "Aptos";
             subtComp.Range.Font.Size = 12;
             subtComp.Range.Font.Bold = 1;
             subtComp.Format.Alignment = Word.WdParagraphAlignment.wdAlignParagraphCenter;
@@ -352,16 +447,16 @@ namespace WordClientNou
             subtComp.Range.InsertParagraphAfter();
 
             Word.Paragraph txtComp = doc.Content.Paragraphs.Add();
-            txtComp.Range.Text = "\tContractul reprezintă acordul integral al părţilor şi înlocuieşte orice înţelegere anterioară.";
+            txtComp.Range.Text = "\tContractul reprezintă acordul integral al părţilor şi înlocuieşte orice înţelegere anterioară. Modificarea contractului se face de comun acord prin act adițional semnat de ambele părți.";
             txtComp.Range.Font.Name = "Times New Roman";
             txtComp.Range.Font.Size = 10;
             txtComp.Format.SpaceAfter = 12;
             txtComp.Range.InsertParagraphAfter();
 
-            /*──────────────── DIVIZIBILITATE ──────────────────*/
+            // divizibilitate
             Word.Paragraph subtDiv = doc.Content.Paragraphs.Add();
-            subtDiv.Range.Text = "\tDIVIZIBILITATE";
-            subtDiv.Range.Font.Name = "Times New Roman";
+            subtDiv.Range.Text = "\tArt. 16. DIVIZIBILITATE";
+            subtDiv.Range.Font.Name = "Aptos";
             subtDiv.Range.Font.Size = 12;
             subtDiv.Range.Font.Bold = 1;
             subtDiv.Format.Alignment = Word.WdParagraphAlignment.wdAlignParagraphCenter;
@@ -375,17 +470,24 @@ namespace WordClientNou
             txtDiv.Format.SpaceAfter = 12;
             txtDiv.Range.InsertParagraphAfter();
 
-            /*──────────────── LOGO ───────────────────────────*/
+            // finalul contractului
+            Word.Paragraph final = doc.Content.Paragraphs.Add();
+            final.Range.Text = "\tPrezentul contract, inclusiv anexele, a fost încheiat în două exemplare, câte unul pentru fiecare parte.";
+            final.Range.Font.Name = "Times New Roman";
+            final.Range.Font.Size = 10;
+            final.Range.Font.Italic = 1;
+            final.Format.SpaceAfter = 12;
+            final.Range.InsertParagraphAfter();
+
+
             Word.Paragraph logoPara = doc.Content.Paragraphs.Add();
             Word.Range logoRange = logoPara.Range;
             logoRange.InlineShapes.AddPicture(@"C:\Users\anama\source\repos\ProiectIPLA\WordClientNou\Resources\Logo.png");
             logoRange.ParagraphFormat.Alignment = Word.WdParagraphAlignment.wdAlignParagraphCenter;
            
             logoRange.InsertParagraphAfter();
-
-            /*──────────────── SEMNĂTURI ───────────────────────*/
             Word.Paragraph sign1 = doc.Content.Paragraphs.Add();
-            sign1.Range.Text = "\tLOCATOR ________________________        LOCATAR ________________________";
+            sign1.Range.Text = "\tLOCATOR ________________________               UTILIZATOR ________________________";
             sign1.Range.Font.Name = "Times New Roman";
             sign1.Range.Font.Size = 10;
             sign1.Format.SpaceAfter = 0;
@@ -398,7 +500,7 @@ namespace WordClientNou
             sign2.Format.SpaceAfter = 0;
             sign2.Range.InsertParagraphAfter();
 
-            /*──────────────── colorare valori dinamice ───────*/
+            // colorare text care vine din baza de date
             string[] dinamice =
             {
         rc["Nume"].ToString(), rc["Prenume"].ToString(), rc["CNP"].ToString(),
@@ -418,7 +520,7 @@ namespace WordClientNou
                 }
             }
 
-            /*──────────────── salvare ─────────────────────────*/
+            //salvare document
             string marca = ro["Marca"].ToString();
             string model = ro["NumeMasina"].ToString();
             string dataStr = DateTime.Now.ToString("dd-MM-yyyy");

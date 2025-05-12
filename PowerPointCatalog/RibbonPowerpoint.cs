@@ -10,7 +10,6 @@ namespace PowerPointCatalog
     {
         private PowerPoint.Application pptApp;
 
-        // one place to maintain the connection string
         private const string ConnString =
             @"Provider=Microsoft.ACE.OLEDB.12.0;Data Source=C:\Users\anama\source\repos\ProiectIPLA\WordClientNou\IPLAproiect.accdb";
 
@@ -21,9 +20,7 @@ namespace PowerPointCatalog
 
         private void btnOferta_Click(object sender, RibbonControlEventArgs e)
         {
-            /* ───────────────────────────────────────────────────────────────
-               1. slide curent
-            ─────────────────────────────────────────────────────────────── */
+            //slide curent
             PowerPoint.Slide curSlide = null;
             var wnd = pptApp.ActiveWindow;
 
@@ -38,9 +35,7 @@ namespace PowerPointCatalog
                 return;
             }
 
-            /* ───────────────────────────────────────────────────────────────
-               2. OfferID din tag
-            ─────────────────────────────────────────────────────────────── */
+      
             string idText = curSlide.Tags["OfferID"];
             if (string.IsNullOrEmpty(idText) || !int.TryParse(idText, out int ofertaId))
             {
@@ -48,9 +43,6 @@ namespace PowerPointCatalog
                 return;
             }
 
-            /* ───────────────────────────────────────────────────────────────
-               3. Clientul curent din tabelul DateActuale
-            ─────────────────────────────────────────────────────────────── */
             int idClient = GetCurrentClientId();
             if (idClient <= 0)
             {
@@ -58,9 +50,6 @@ namespace PowerPointCatalog
                 return;
             }
 
-            /* ───────────────────────────────────────────────────────────────
-               4. Rezervăm oferta și marcăm oferta curentă
-            ─────────────────────────────────────────────────────────────── */
             try
             {
                 var con = new OleDbConnection(ConnString);
@@ -77,7 +66,7 @@ namespace PowerPointCatalog
                 int rows = cmd.ExecuteNonQuery();
                 if (rows > 0)
                 {
-                    SetCurrentOfferId(ofertaId);       // păstrăm oferta curentă (opţional)
+                    SetCurrentOfferId(ofertaId);
                     MessageBox.Show("Oferta a fost rezervată cu succes!");
                 }
                 else
@@ -90,8 +79,6 @@ namespace PowerPointCatalog
                 MessageBox.Show("Eroare la actualizarea ofertei: " + ex.Message);
             }
         }
-
-        /*──────────────────────── helper-e context ───────────────────────*/
 
         private int GetCurrentClientId()
         {

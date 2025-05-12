@@ -27,7 +27,7 @@ namespace WordClientNou
         Button btnPowerpoint;
         Button btnVizualizareContract;
         Button btnExcelPlanFinanciar;
-        
+        // cand am incercat cu cale relativa imi dadea eroare, ma scuzati
         string connString = @"Provider=Microsoft.ACE.OLEDB.12.0;Data Source=C:\Users\anama\source\repos\ProiectIPLA\WordClientNou\IPLAproiect.accdb";
         string ImageFolder =@"C:\Users\anama\source\repos\ProiectIPLA\WordClientNou\ImaginiDB";
 
@@ -49,18 +49,22 @@ namespace WordClientNou
             btnExcelPlanFinanciar.Text = "PAS 4. Deschide Planul Financiar";
             btnExcelPlanFinanciar.Click += new EventHandler(btnExcelPlanFinanciar_Click);
 
-            // setam dimensiunile butoanelor
             btnAdaugareClient.Size = new Size(200, 30);
             btnPowerpoint.Size = new Size(200, 30);
             btnVizualizareContract.Size = new Size(200, 30);
             btnExcelPlanFinanciar.Size = new Size(200, 30);
+
+            btnAdaugareClient.BackColor = Color.LightBlue;
+            btnPowerpoint.BackColor = Color.LightBlue;
+            btnVizualizareContract.BackColor = Color.LightBlue;
+            btnExcelPlanFinanciar.BackColor = Color.LightBlue;
 
             Globals.ThisDocument.ActionsPane.Controls.Add(btnAdaugareClient);
             Globals.ThisDocument.ActionsPane.Controls.Add(btnPowerpoint);
             Globals.ThisDocument.ActionsPane.Controls.Add(btnVizualizareContract);
             Globals.ThisDocument.ActionsPane.Controls.Add(btnExcelPlanFinanciar);
 
-            // la deschiderea documentului, clientul actual este resetat
+            // la deschiderea documentului, clientul actual e resetat
             var conn = new OleDbConnection(connString);
             conn.Open();
             const string sql = "UPDATE DateActuale SET IdClientActual = -1, IdOfertaActuala = -1 WHERE ID = 1";
@@ -108,7 +112,6 @@ namespace WordClientNou
                     var conn = new OleDbConnection(connString);
                     conn.Open();
 
-                    /* 1️⃣  INSERT fără coloana-cheie (Id este AutoNumber) */
                     const string sqlIns =
                         @"INSERT INTO Clienti
               (Nume, Prenume, Telefon, CNP, Email,
@@ -130,14 +133,12 @@ namespace WordClientNou
                         cmdIns.ExecuteNonQuery();
                     }
 
-                    /* 2️⃣  ID-ul nou – concurrent-safe cu @@IDENTITY  */
-                    int newClientId; // are eroare daca e "long"
+                    int newClientId; 
                     using (var cmdId = new OleDbCommand("SELECT @@IDENTITY", conn))
                     {
                         newClientId = System.Convert.ToInt32(cmdId.ExecuteScalar());
                     }
 
-                    /* 3️⃣  Scriem contextul comun  */
                     const string sqlCtx =
                         "UPDATE DateActuale SET IdClientActual = ? WHERE ID = 1";
 
@@ -149,7 +150,6 @@ namespace WordClientNou
 
                     MessageBox.Show("Client adăugat cu succes!");
 
-                    /* 4️⃣  Golește controalele */
                     rtcNume.Text = rtcPrenume.Text = rtcTelefon.Text = rtcJudet.Text =
                     rtcCNP.Text = rtcEmail.Text = rtcAdresa.Text = rtcLocSec.Text = "";
 
@@ -178,7 +178,7 @@ namespace WordClientNou
                 pptApp = new PowerPoint.Application { Visible = Office.MsoTriState.msoTrue };
             }
 
-            
+            // Primul slide
             PowerPoint.Presentation pres =
                 pptApp.Presentations.Add(Office.MsoTriState.msoTrue);
             int nrSlides = pres.Slides.Count;
@@ -198,9 +198,6 @@ namespace WordClientNou
             titlu.Fill.ForeColor.RGB =
                     ColorTranslator.ToOle(Color.FromArgb(173, 216, 230));
 
-            // ----------------------------------------------------------
-            // 2. TEXTBOX  – mai jos & mai lat
-            // coordonate: Left, Top, Width, Height
             float left = 60f;
             float top = 240f;      
             float width = 820f;      
@@ -276,7 +273,7 @@ namespace WordClientNou
                         PowerPoint.PpSlideLayout.ppLayoutBlank);
             sld.Tags.Add("OfferID", of.IdOferta.ToString());
 
-            // 🔷 Gradient albastru pe fundal
+            //Gradient albastru pe fundal
             sld.FollowMasterBackground = Office.MsoTriState.msoFalse;
             var bgFill = sld.Background.Fill;
             bgFill.Visible = Office.MsoTriState.msoTrue;
@@ -286,7 +283,7 @@ namespace WordClientNou
             bgFill.GradientStops.Insert(ColorTranslator.ToOle(Color.DeepSkyBlue), 0.0f);
             bgFill.GradientStops.Insert(ColorTranslator.ToOle(Color.White), 1.0f);
 
-            // 🔷 Titlu
+            //Titlu
             var titluBox = sld.Shapes.AddTextbox(
                 Office.MsoTextOrientation.msoTextOrientationHorizontal, 100, 30, 700, 60);
             var rngTitlu = titluBox.TextFrame.TextRange;
@@ -299,7 +296,7 @@ namespace WordClientNou
             titluBox.Fill.Solid();
             titluBox.Fill.ForeColor.RGB = ColorTranslator.ToOle(Color.FromArgb(173, 216, 230)); // baby blue
 
-            // 🔷 Imagine maşină - rounded rectangle cu imagine de fundal
+            //Imagine masina
             string imgPath = System.IO.Path.Combine(ImageFolder, of.NumePoza ?? "");
             if (File.Exists(imgPath))
             {
@@ -309,14 +306,14 @@ namespace WordClientNou
                 shape.Line.Visible = Office.MsoTriState.msoFalse;
             }
 
-            // 🔷 Stea preț – colț dreapta
+            //Stea pret
             var stea = sld.Shapes.AddShape(Office.MsoAutoShapeType.msoShape5pointStar,
                                            670, 110, 160, 160);
             stea.Fill.Solid();
             stea.Fill.ForeColor.RGB = ColorTranslator.ToOle(Color.DarkBlue);
             stea.Line.Visible = Office.MsoTriState.msoFalse;
 
-            // 🔷 Caseta cu preț – mai lată, centrată
+            //Caseta cu pret
             var pretBox = sld.Shapes.AddTextbox(
                 Office.MsoTextOrientation.msoTextOrientationHorizontal,
                 680, 160, 140, 40); // ⬅️ lățit
@@ -328,7 +325,7 @@ namespace WordClientNou
                 PowerPoint.PpParagraphAlignment.ppAlignCenter;
             pretBox.TextFrame.VerticalAnchor = Office.MsoVerticalAnchor.msoAnchorMiddle; // ⬅️ centrare verticală
 
-            // 🔷 Caseta cu „Lei” – puțin mai jos, tot centrată
+            //Caseta cu lei
             var leiBox = sld.Shapes.AddTextbox(
                 Office.MsoTextOrientation.msoTextOrientationHorizontal,
                 685, 195, 130, 30); // ⬅️ lățit și repoziționat
@@ -340,7 +337,7 @@ namespace WordClientNou
                 PowerPoint.PpParagraphAlignment.ppAlignCenter;
             leiBox.TextFrame.VerticalAnchor = Office.MsoVerticalAnchor.msoAnchorMiddle;
 
-            // 🔷 Detalii sub imagine
+            //Detalii masina sub imagine
             var detalii = sld.Shapes.AddTextbox(
                 Office.MsoTextOrientation.msoTextOrientationHorizontal, 100, 430, 700, 60);
             detalii.Fill.Visible = Office.MsoTriState.msoTrue;
@@ -365,7 +362,6 @@ namespace WordClientNou
 
         private void btnExcelPlanFinanciar_Click(object sender, EventArgs e)
         {
-            /* -- id-uri curente (demo: fixe) ---------------------------------- */
             int idClient = -1, idOferta = -1;
             using (var con = new OleDbConnection(connString))
             {
@@ -373,14 +369,16 @@ namespace WordClientNou
                 var cmd = new OleDbCommand(
                     "SELECT IdClientActual, IdOfertaActuala FROM DateActuale WHERE ID=1", con);
                 var reader = cmd.ExecuteReader();
-                if (reader.Read()) { idClient = reader.GetInt32(0); idOferta = reader.GetInt32(1); }
-                //}
+                if (reader.Read())
+                {
+                    idClient = reader.GetInt32(0); idOferta = reader.GetInt32(1);
+                }
                 if (idClient <= 0 || idOferta <= 0)
                 {
                     MessageBox.Show("Nu există client / ofertă curentă."); return;
                 }
 
-                /* -- date din Access --------------------------------------------- */
+                // date din Access
                 string nume = "", prenume = "", venit = ""; decimal pretZi = 0; int durata = 0;
 
                 var c = new OleDbCommand("SELECT Nume,Prenume,Venit FROM Clienti WHERE Id=?", con);
@@ -393,8 +391,6 @@ namespace WordClientNou
                 var ro = o.ExecuteReader();
                 if (ro.Read()) { pretZi = ro.GetDecimal(0); durata = ro.GetInt32(1); }
 
-
-                // With this equivalent code that does not use the 'switch' expression:
                 decimal avansPct;
                 if (venit == "Sub 5.000 RON")
                 {
@@ -420,7 +416,7 @@ namespace WordClientNou
                 decimal costTotal = pretZi * durata;
                 decimal garantie = costTotal * avansPct;
 
-                /* -- porneşte / ataşează Excel ----------------------------------- */
+                // deschidere Excel
                 Excel.Application exApp;
                 try { exApp = (Excel.Application)Marshal.GetActiveObject("Excel.Application"); }
                 catch { exApp = new Excel.Application(); }
@@ -430,7 +426,7 @@ namespace WordClientNou
                 Excel.Worksheet ws = wb.Worksheets[1];
                 ws.Name = "Date Actuale";
 
-                /* -- tabel -------------------------------------------------------- */
+                // antet
                 string[] label = { "Client", "Venit", "Tarif/zi", "Durata (zile)",
                        "Cost total", "Procent garanţie", "Garanţie (lei)" };
                 for (int i = 0; i < label.Length; i++)
@@ -449,40 +445,41 @@ namespace WordClientNou
 
                 ws.Range["B6"].NumberFormat = "0%";
 
-                /* lăţimi fixe – alternativ la AutoFit */
                 ws.Columns["A"].ColumnWidth = 18;
-                ws.Columns["B"].ColumnWidth = 14;
+                ws.Columns["B"].ColumnWidth = 20;
 
-                /* borduri + aliniere */
                 Excel.Range tbl = ws.Range["A1:B7"];
                 tbl.Borders.LineStyle = Excel.XlLineStyle.xlContinuous;
                 tbl.Borders.Weight = Excel.XlBorderWeight.xlThin;
                 tbl.HorizontalAlignment = Excel.XlHAlign.xlHAlignCenter;
                 tbl.VerticalAlignment = Excel.XlVAlign.xlVAlignCenter;
                 tbl.Font.Size = 11;
+                ws.Range["A1:B1"].Interior.Color = 0x876cc5;
 
-                /* antet violet */
-                ws.Range["A1:B1"].Interior.Color = 0xD9D2E9;
+                //pie chart cost total vs garantie
 
-                /* -- grafic Cost total vs Garanţie (fără procent) ----------------- */
                 Excel.ChartObjects chs = (Excel.ChartObjects)ws.ChartObjects();
-                Excel.ChartObject chObj = chs.Add(300, 40, 380, 240);
-                Excel.Chart ch = chObj.Chart;
-                ch.ChartType = Excel.XlChartType.xlColumnClustered;
+                Excel.ChartObject co = chs.Add(300, 40, 360, 260);
+                Excel.Chart ch = co.Chart;
+                ch.ChartType = Excel.XlChartType.xlPie;
 
-                /* serie 1 – Cost total */
-                ch.SetSourceData(ws.Range["B5"]);              // celula B5
-                ch.SeriesCollection(1).XValues = ws.Range["A5"];
-                ch.SeriesCollection(1).Name = "Cost total";
+                Excel.Series s = ch.SeriesCollection().NewSeries();
 
-                /* serie 2 – Garanţie */
-                Excel.Series s2 = ch.SeriesCollection().NewSeries();
-                s2.Values = ws.Range["B7"];
-                s2.XValues = ws.Range["A7"];
-                s2.Name = "Garanţie";
+                s.Values = new object[] { (double)costTotal, (double)garantie };
+
+                s.XValues = new object[] { "Cost total", "Garanţie" };
+                s.Name = "Structură cost";
+
+                s.HasDataLabels = true;
+                s.DataLabels().ShowPercentage = true;
+                s.DataLabels().ShowCategoryName = true;
 
                 ch.HasTitle = true;
-                ch.ChartTitle.Text = "Cost total vs Garanţie";
+                ch.ChartTitle.Text = "Structură cost: total vs garanţie";
+                ch.HasLegend = true;
+                ch.Legend.Position = Excel.XlLegendPosition.xlLegendPositionRight;
+
+
             }
         }
 
