@@ -17,9 +17,9 @@ namespace ExcelPlanFinanciar
         private static readonly Dictionary<string, double> VenitCategorieDobanda = new Dictionary<string, double>
         {
             { "Sub 5.000 RON",          0.11 },   // 11 % anual
-            { "5.000 RON - 10.000 RON", 0.09 },
-            { "10.000 RON - 20.000 RON",0.07 },
-            { "Peste 20.000 RON",       0.05 }
+            { "5.000 RON - 10.000 RON", 0.15 },
+            { "10.000 RON - 20.000 RON",0.25 },
+            { "Peste 20.000 RON",       0.35 }
         };
         
 
@@ -78,7 +78,6 @@ namespace ExcelPlanFinanciar
             axY.HasTitle = true;
             axY.AxisTitle.Caption = "Lei";
 
-
             /* 4️⃣  Grafic 2 – Coloane suprapuse 100 % (procent principal vs dobândă) */
             Excel.ChartObject g2 = ((Excel.ChartObjects)ws.ChartObjects())
                                    .Add(800, 40, 420, 280);
@@ -120,27 +119,24 @@ namespace ExcelPlanFinanciar
         private void GenereazaPlan(double sumaInAvans = 0.0)
         {
             /* 1️⃣  Id-urile active din DateActuale */
-            int idClient = 2, idOferta = 3;
-            //using (var con = new OleDbConnection(ConnString))
-            //{
-            //    con.Open();
-            //    var cmd = new OleDbCommand(
-            //        "SELECT IdClientActual, IdOfertaActuala FROM DateActuale WHERE ID=1", con);
-            //    var reader = cmd.ExecuteReader();
-            //    if (reader.Read()) { idClient = reader.GetInt32(0); idOferta = reader.GetInt32(1); }
-            //}
-            if (idClient <= 0 || idOferta <= 0)
-            {
-                MessageBox.Show("Nu există client / ofertă curentă."); return;
-            }
-
-            /* 2️⃣  Citim date client + ofertă */
-            string nume = "", prenume = "", venitCat = "";
-            double pretZi = 0; int durataZile = 0;
-
+            int idClient = -1, idOferta = -1;
             using (var con = new OleDbConnection(ConnString))
             {
                 con.Open();
+                var cmd = new OleDbCommand(
+                    "SELECT IdClientActual, IdOfertaActuala FROM DateActuale WHERE ID=1", con);
+                var reader = cmd.ExecuteReader();
+                if (reader.Read()) { idClient = reader.GetInt32(0); idOferta = reader.GetInt32(1); }
+                //}
+                if (idClient <= 0 || idOferta <= 0)
+                {
+                    MessageBox.Show("Nu există client / ofertă curentă."); return;
+                }
+
+                /* 2️⃣  Citim date client + ofertă */
+                string nume = "", prenume = "", venitCat = "";
+                double pretZi = 0; int durataZile = 0;
+
                 var cCmd = new OleDbCommand("SELECT Nume,Prenume,Venit FROM Clienti WHERE Id=?", con);
                 cCmd.Parameters.AddWithValue("?", idClient);
                 var rc = cCmd.ExecuteReader();
@@ -157,86 +153,87 @@ namespace ExcelPlanFinanciar
                     pretZi = Convert.ToDouble(ro.GetDecimal(0));
                     durataZile = ro.GetInt32(1);
                 }
-            }
 
-            /* 3️⃣  Parametri plan */
-            int luni = (int)Math.Ceiling(durataZile / 30.0);
-            double principal = pretZi * durataZile - sumaInAvans;      // scădem plata anticipată
-            if (principal <= 0) { MessageBox.Show("Plata în avans depăşeşte costul total."); return; }
 
-            double rataAnuala = VenitCategorieDobanda.TryGetValue(venitCat, out var r) ? r : 0.1;
-            double rataLunara = rataAnuala / 12.0;
+                /* 3️⃣  Parametri plan */
+                int luni = (int)Math.Ceiling(durataZile / 30.0);
+                double principal = pretZi * durataZile - sumaInAvans;      // scădem plata anticipată
+                if (principal <= 0) { MessageBox.Show("Plata în avans depăşeşte costul total."); return; }
 
-            /* formula PMT */
-            double plataLunara = principal * rataLunara / (1 - Math.Pow(1 + rataLunara, -luni));
+                double rataAnuala = VenitCategorieDobanda.TryGetValue(venitCat, out var r) ? r : 0.1;
+                double rataLunara = rataAnuala / 12.0;
 
-            /* 4️⃣  Creează/curăţă foaia PlanFinanciar */
-            Excel.Worksheet ws;
-            try { ws = (Excel.Worksheet)excelApp.Worksheets["Plan Financiar Plata"]; ws.Cells.Clear(); }
-            catch { ws = excelApp.Worksheets.Add(); ws.Name = "Plan Financiar Plata"; }
+                /* formula PMT */
+                double plataLunara = principal * rataLunara / (1 - Math.Pow(1 + rataLunara, -luni));
 
-            /* antet */
-            string[] h = { "Luna", "Principal", "Dobândă", "Plata", "Sold rămas" };
-            for (int i = 0; i < h.Length; i++) ws.Cells[1, i + 1] = h[i];
-            ws.Range["A1:E1"].Font.Bold = true;
+                /* 4️⃣  Creează/curăţă foaia PlanFinanciar */
+                Excel.Worksheet ws;
+                try { ws = (Excel.Worksheet)excelApp.Worksheets["Plan Financiar Plata"]; ws.Cells.Clear(); }
+                catch { ws = excelApp.Worksheets.Add(); ws.Name = "Plan Financiar Plata"; }
 
-            /* 5️⃣  Amortizare */
-            double sold = principal;
-            int row = 2;
-            for (int luna = 1; luna <= luni; luna++)
-            {
-                double dobanda = sold * rataLunara;
-                double principalPlat = plataLunara - dobanda;
-                if (luna == luni)                      // ultima lună: ajustare pentru rotunjiri
+                /* antet */
+                string[] h = { "Luna", "Principal", "Dobândă", "Plata", "Sold rămas" };
+                for (int i = 0; i < h.Length; i++) ws.Cells[1, i + 1] = h[i];
+                ws.Range["A1:E1"].Font.Bold = true;
+
+                /* 5️⃣  Amortizare */
+                double sold = principal;
+                int row = 2;
+                for (int luna = 1; luna <= luni; luna++)
                 {
-                    principalPlat = sold;
-                    plataLunara = principalPlat + dobanda;
+                    double dobanda = sold * rataLunara;
+                    double principalPlat = plataLunara - dobanda;
+                    if (luna == luni)                      // ultima lună: ajustare pentru rotunjiri
+                    {
+                        principalPlat = sold;
+                        plataLunara = principalPlat + dobanda;
+                    }
+                    sold -= principalPlat;
+
+                    ws.Cells[row, 1] = luna;
+                    ws.Cells[row, 2] = principalPlat;
+                    ws.Cells[row, 3] = dobanda;
+                    ws.Cells[row, 4] = plataLunara;
+                    ws.Cells[row, 5] = Math.Max(sold, 0);
+                    row++;
                 }
-                sold -= principalPlat;
 
-                ws.Cells[row, 1] = luna;
-                ws.Cells[row, 2] = principalPlat;
-                ws.Cells[row, 3] = dobanda;
-                ws.Cells[row, 4] = plataLunara;
-                ws.Cells[row, 5] = Math.Max(sold, 0);
-                row++;
+                ws.Range[$"B2:D{row - 1}"].NumberFormat = "#,##0";
+                ws.Columns["A:E"].AutoFit();
+
+                /* 6️⃣  formatare „frumoasă” pe tot intervalul tabelului */
+                int lastDataRow = row - 1;                     // ultima linie cu date
+                Excel.Range tblRange = ws.Range[$"A1:E{lastDataRow}"];
+
+                /* ---- TableStyle: albastru / violet ---- */
+                Excel.ListObject lo;
+                try
+                {
+                    lo = ws.ListObjects.Add(Excel.XlListObjectSourceType.xlSrcRange,
+                                                           tblRange, null, Excel.XlYesNoGuess.xlYes);
+                }
+                catch { lo = ws.ListObjects[1]; lo.Resize(tblRange); }  // deja există
+
+                lo.Name = "tblPlan";
+                lo.TableStyle = "TableStyleMedium12";          // mov-violet; încearcă și 13/14 pt albastru
+
+                /* ---- Header: bold + font 12 ---- */
+                Excel.Range header = ws.Range["A1:E1"];
+                header.Font.Size = 12;
+                header.Font.Bold = true;
+                header.Interior.Color = 0xD9D2E9;              // violet deschis (RGB BGR)
+
+                /* ---- borduri ---- */
+                tblRange.Borders.LineStyle = Excel.XlLineStyle.xlContinuous;
+                tblRange.Borders.Color = 0x5B9BD5;       // albastru
+                tblRange.Borders.Weight = Excel.XlBorderWeight.xlThin;
+
+                /* ---- aliniere în toate celulele ---- */
+                tblRange.HorizontalAlignment = Excel.XlHAlign.xlHAlignCenter;
+                tblRange.VerticalAlignment = Excel.XlVAlign.xlVAlignCenter;
+
+                MessageBox.Show("Plan financiar generat / actualizat.");
             }
-
-            ws.Range[$"B2:D{row - 1}"].NumberFormat = "#,##0";
-            ws.Columns["A:E"].AutoFit();
-            
-            /* 6️⃣  formatare „frumoasă” pe tot intervalul tabelului */
-            int lastDataRow = row - 1;                     // ultima linie cu date
-            Excel.Range tblRange = ws.Range[$"A1:E{lastDataRow}"];
-
-            /* ---- TableStyle: albastru / violet ---- */
-            Excel.ListObject lo;
-            try
-            {
-                lo = ws.ListObjects.Add(Excel.XlListObjectSourceType.xlSrcRange,
-                                                       tblRange, null, Excel.XlYesNoGuess.xlYes);
-            }
-            catch { lo = ws.ListObjects[1]; lo.Resize(tblRange); }  // deja există
-
-            lo.Name = "tblPlan";
-            lo.TableStyle = "TableStyleMedium12";          // mov-violet; încearcă și 13/14 pt albastru
-
-            /* ---- Header: bold + font 12 ---- */
-            Excel.Range header = ws.Range["A1:E1"];
-            header.Font.Size = 12;
-            header.Font.Bold = true;
-            header.Interior.Color = 0xD9D2E9;              // violet deschis (RGB BGR)
-
-            /* ---- borduri ---- */
-            tblRange.Borders.LineStyle = Excel.XlLineStyle.xlContinuous;
-            tblRange.Borders.Color = 0x5B9BD5;       // albastru
-            tblRange.Borders.Weight = Excel.XlBorderWeight.xlThin;
-
-            /* ---- aliniere în toate celulele ---- */
-            tblRange.HorizontalAlignment = Excel.XlHAlign.xlHAlignCenter;
-            tblRange.VerticalAlignment = Excel.XlVAlign.xlVAlignCenter;
-
-            MessageBox.Show("Plan financiar generat / actualizat.");
         }
 
         private void btnPlataInAvans_Click(object sender, RibbonControlEventArgs e)

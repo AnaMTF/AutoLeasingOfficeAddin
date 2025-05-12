@@ -216,6 +216,7 @@
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
+      <DesignTime>True</DesignTime>
     </Compile>
     <EmbeddedResource Include="RibbonPowerpoint.resx">
       <DependentUpon>RibbonPowerpoint.cs</DependentUpon>
@@ -250,6 +251,9 @@
       <Project>{1e2071e3-a1c7-5cd3-5028-302a9188fd2e}</Project>
       <Name>WordClientNou</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\pngtree-assignment-done-icon-color-flat-png-image_4666610.png" />
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>

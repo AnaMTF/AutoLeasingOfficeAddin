@@ -28,7 +28,7 @@ namespace ExcelPlanFinanciar
             }
             else
             {
-                MessageBox.Show("Introduceţi o sumă validă în lei.");
+                MessageBox.Show("Introduceţi o sumă validă în lei.(mai mică decât suma totală de plată");
                 DialogResult = DialogResult.None;
             }
         }

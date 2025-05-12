@@ -35,45 +35,51 @@
         private void InitializeComponent()
         {
             this.tab1 = this.Factory.CreateRibbonTab();
-            this.group1 = this.Factory.CreateRibbonGroup();
-            this.btnVizualizareGrafic = this.Factory.CreateRibbonButton();
+            this.grupAnalizeFinanciare = this.Factory.CreateRibbonGroup();
             this.btnPaymentPlan = this.Factory.CreateRibbonButton();
+            this.btnVizualizareGrafic = this.Factory.CreateRibbonButton();
             this.btnPlataInAvans = this.Factory.CreateRibbonButton();
             this.tab1.SuspendLayout();
-            this.group1.SuspendLayout();
+            this.grupAnalizeFinanciare.SuspendLayout();
             this.SuspendLayout();
             // 
             // tab1
             // 
             this.tab1.ControlId.ControlIdType = Microsoft.Office.Tools.Ribbon.RibbonControlIdType.Office;
-            this.tab1.Groups.Add(this.group1);
+            this.tab1.Groups.Add(this.grupAnalizeFinanciare);
             this.tab1.Label = "TabAddIns";
             this.tab1.Name = "tab1";
             // 
-            // group1
+            // grupAnalizeFinanciare
             // 
-            this.group1.Items.Add(this.btnPaymentPlan);
-            this.group1.Items.Add(this.btnVizualizareGrafic);
-            this.group1.Items.Add(this.btnPlataInAvans);
-            this.group1.Label = "Analize";
-            this.group1.Name = "group1";
-            // 
-            // btnVizualizareGrafic
-            // 
-            this.btnVizualizareGrafic.Label = "Vizualizati Graficul";
-            this.btnVizualizareGrafic.Name = "btnVizualizareGrafic";
-            this.btnVizualizareGrafic.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.btnVizualizareGrafic_Click);
+            this.grupAnalizeFinanciare.Items.Add(this.btnPaymentPlan);
+            this.grupAnalizeFinanciare.Items.Add(this.btnVizualizareGrafic);
+            this.grupAnalizeFinanciare.Items.Add(this.btnPlataInAvans);
+            this.grupAnalizeFinanciare.Label = "Analize Leasing";
+            this.grupAnalizeFinanciare.Name = "grupAnalizeFinanciare";
             // 
             // btnPaymentPlan
             // 
-            this.btnPaymentPlan.Label = "Vezi Planul de Plata";
+            this.btnPaymentPlan.Image = global::ExcelPlanFinanciar.Properties.Resources._1694683_small;
+            this.btnPaymentPlan.Label = "Vedeti Planul de Plata";
             this.btnPaymentPlan.Name = "btnPaymentPlan";
+            this.btnPaymentPlan.ShowImage = true;
             this.btnPaymentPlan.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.btnPaymentPlan_Click);
+            // 
+            // btnVizualizareGrafic
+            // 
+            this.btnVizualizareGrafic.Image = global::ExcelPlanFinanciar.Properties.Resources.Graph_PNG_High_Quality_Image;
+            this.btnVizualizareGrafic.Label = "Vizualizati Graficul";
+            this.btnVizualizareGrafic.Name = "btnVizualizareGrafic";
+            this.btnVizualizareGrafic.ShowImage = true;
+            this.btnVizualizareGrafic.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.btnVizualizareGrafic_Click);
             // 
             // btnPlataInAvans
             // 
+            this.btnPlataInAvans.Image = global::ExcelPlanFinanciar.Properties.Resources.Green_Dollar_Sign_PNG_Clipart;
             this.btnPlataInAvans.Label = "Plata in Avans";
             this.btnPlataInAvans.Name = "btnPlataInAvans";
+            this.btnPlataInAvans.ShowImage = true;
             this.btnPlataInAvans.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.btnPlataInAvans_Click);
             // 
             // RibbonExcel
@@ -84,8 +90,8 @@
             this.Load += new Microsoft.Office.Tools.Ribbon.RibbonUIEventHandler(this.RibbonExcel_Load);
             this.tab1.ResumeLayout(false);
             this.tab1.PerformLayout();
-            this.group1.ResumeLayout(false);
-            this.group1.PerformLayout();
+            this.grupAnalizeFinanciare.ResumeLayout(false);
+            this.grupAnalizeFinanciare.PerformLayout();
             this.ResumeLayout(false);
 
         }
@@ -93,7 +99,7 @@
         #endregion
 
         internal Microsoft.Office.Tools.Ribbon.RibbonTab tab1;
-        internal Microsoft.Office.Tools.Ribbon.RibbonGroup group1;
+        internal Microsoft.Office.Tools.Ribbon.RibbonGroup grupAnalizeFinanciare;
         internal Microsoft.Office.Tools.Ribbon.RibbonButton btnVizualizareGrafic;
         internal Microsoft.Office.Tools.Ribbon.RibbonButton btnPaymentPlan;
         internal Microsoft.Office.Tools.Ribbon.RibbonButton btnPlataInAvans;

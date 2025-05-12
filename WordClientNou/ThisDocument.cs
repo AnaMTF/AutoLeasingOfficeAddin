@@ -366,15 +366,23 @@ namespace WordClientNou
         private void btnExcelPlanFinanciar_Click(object sender, EventArgs e)
         {
             /* -- id-uri curente (demo: fixe) ---------------------------------- */
-            int idClient = 2, idOferta = 3;
-            if (idClient <= 0 || idOferta <= 0)
-            { MessageBox.Show("Selectaţi mai întâi clientul şi oferta."); return; }
-
-            /* -- date din Access --------------------------------------------- */
-            string nume = "", prenume = "", venit = ""; decimal pretZi = 0; int durata = 0;
+            int idClient = -1, idOferta = -1;
             using (var con = new OleDbConnection(connString))
             {
                 con.Open();
+                var cmd = new OleDbCommand(
+                    "SELECT IdClientActual, IdOfertaActuala FROM DateActuale WHERE ID=1", con);
+                var reader = cmd.ExecuteReader();
+                if (reader.Read()) { idClient = reader.GetInt32(0); idOferta = reader.GetInt32(1); }
+                //}
+                if (idClient <= 0 || idOferta <= 0)
+                {
+                    MessageBox.Show("Nu există client / ofertă curentă."); return;
+                }
+
+                /* -- date din Access --------------------------------------------- */
+                string nume = "", prenume = "", venit = ""; decimal pretZi = 0; int durata = 0;
+
                 var c = new OleDbCommand("SELECT Nume,Prenume,Venit FROM Clienti WHERE Id=?", con);
                 c.Parameters.AddWithValue("?", idClient);
                 var rc = c.ExecuteReader();
@@ -384,97 +392,98 @@ namespace WordClientNou
                 o.Parameters.AddWithValue("?", idOferta);
                 var ro = o.ExecuteReader();
                 if (ro.Read()) { pretZi = ro.GetDecimal(0); durata = ro.GetInt32(1); }
-            }
 
-            // With this equivalent code that does not use the 'switch' expression:
-            decimal avansPct;
-            if (venit == "Sub 5.000 RON")
-            {
-                avansPct = 0.20m;
-            }
-            else if (venit == "5.000 RON - 10.000 RON")
-            {
-                avansPct = 0.25m;
-            }
-            else if (venit == "10.000 RON - 20.000 RON")
-            {
-                avansPct = 0.35m;
-            }
-            else if (venit == "Peste 20.000 RON")
-            {
-                avansPct = 0.45m;
-            }
-            else
-            {
-                avansPct = 0.10m;
-            }
 
-            decimal costTotal = pretZi * durata;
-            decimal garantie = costTotal * avansPct;
+                // With this equivalent code that does not use the 'switch' expression:
+                decimal avansPct;
+                if (venit == "Sub 5.000 RON")
+                {
+                    avansPct = 0.20m;
+                }
+                else if (venit == "5.000 RON - 10.000 RON")
+                {
+                    avansPct = 0.25m;
+                }
+                else if (venit == "10.000 RON - 20.000 RON")
+                {
+                    avansPct = 0.35m;
+                }
+                else if (venit == "Peste 20.000 RON")
+                {
+                    avansPct = 0.45m;
+                }
+                else
+                {
+                    avansPct = 0.10m;
+                }
 
-            /* -- porneşte / ataşează Excel ----------------------------------- */
-            Excel.Application exApp;
-            try { exApp = (Excel.Application)Marshal.GetActiveObject("Excel.Application"); }
-            catch { exApp = new Excel.Application(); }
-            exApp.Visible = true;
+                decimal costTotal = pretZi * durata;
+                decimal garantie = costTotal * avansPct;
 
-            Excel.Workbook wb = exApp.Workbooks.Add();
-            Excel.Worksheet ws = wb.Worksheets[1];
-            ws.Name = "Date Actuale";
+                /* -- porneşte / ataşează Excel ----------------------------------- */
+                Excel.Application exApp;
+                try { exApp = (Excel.Application)Marshal.GetActiveObject("Excel.Application"); }
+                catch { exApp = new Excel.Application(); }
+                exApp.Visible = true;
 
-            /* -- tabel -------------------------------------------------------- */
-            string[] label = { "Client", "Venit", "Tarif/zi", "Durata (zile)",
+                Excel.Workbook wb = exApp.Workbooks.Add();
+                Excel.Worksheet ws = wb.Worksheets[1];
+                ws.Name = "Date Actuale";
+
+                /* -- tabel -------------------------------------------------------- */
+                string[] label = { "Client", "Venit", "Tarif/zi", "Durata (zile)",
                        "Cost total", "Procent garanţie", "Garanţie (lei)" };
-            for (int i = 0; i < label.Length; i++)
-                ws.Cells[i + 1, 1] = label[i];
+                for (int i = 0; i < label.Length; i++)
+                    ws.Cells[i + 1, 1] = label[i];
 
-            ws.Range["A1:A7"].Font.Bold = true;
+                ws.Range["A1:A7"].Font.Bold = true;
 
-            ws.Range["B1"].Value2 = $"{nume} {prenume}";
-            ws.Range["B2"].Value2 = venit;
-            ws.Range["B3"].Value2 = pretZi;
-            ws.Range["B4"].Value2 = durata;
-            ws.Range["B5"].Value2 = costTotal;
-            ws.Range["B6"].Value2 = avansPct;
-            ws.Range["B7"].Value2 = garantie;
+                ws.Range["B1"].Value2 = $"{nume} {prenume}";
+                ws.Range["B2"].Value2 = venit;
+                ws.Range["B3"].Value2 = pretZi;
+                ws.Range["B4"].Value2 = durata;
+                ws.Range["B5"].Value2 = costTotal;
+                ws.Range["B6"].Value2 = avansPct;
+                ws.Range["B7"].Value2 = garantie;
 
-            
-            ws.Range["B6"].NumberFormat = "0%";
 
-            /* lăţimi fixe – alternativ la AutoFit */
-            ws.Columns["A"].ColumnWidth = 18;
-            ws.Columns["B"].ColumnWidth = 14;
+                ws.Range["B6"].NumberFormat = "0%";
 
-            /* borduri + aliniere */
-            Excel.Range tbl = ws.Range["A1:B7"];
-            tbl.Borders.LineStyle = Excel.XlLineStyle.xlContinuous;
-            tbl.Borders.Weight = Excel.XlBorderWeight.xlThin;
-            tbl.HorizontalAlignment = Excel.XlHAlign.xlHAlignCenter;
-            tbl.VerticalAlignment = Excel.XlVAlign.xlVAlignCenter;
-            tbl.Font.Size = 11;
+                /* lăţimi fixe – alternativ la AutoFit */
+                ws.Columns["A"].ColumnWidth = 18;
+                ws.Columns["B"].ColumnWidth = 14;
 
-            /* antet violet */
-            ws.Range["A1:B1"].Interior.Color = 0xD9D2E9;
+                /* borduri + aliniere */
+                Excel.Range tbl = ws.Range["A1:B7"];
+                tbl.Borders.LineStyle = Excel.XlLineStyle.xlContinuous;
+                tbl.Borders.Weight = Excel.XlBorderWeight.xlThin;
+                tbl.HorizontalAlignment = Excel.XlHAlign.xlHAlignCenter;
+                tbl.VerticalAlignment = Excel.XlVAlign.xlVAlignCenter;
+                tbl.Font.Size = 11;
 
-            /* -- grafic Cost total vs Garanţie (fără procent) ----------------- */
-            Excel.ChartObjects chs = (Excel.ChartObjects)ws.ChartObjects();
-            Excel.ChartObject chObj = chs.Add(300, 40, 380, 240);
-            Excel.Chart ch = chObj.Chart;
-            ch.ChartType = Excel.XlChartType.xlColumnClustered;
+                /* antet violet */
+                ws.Range["A1:B1"].Interior.Color = 0xD9D2E9;
 
-            /* serie 1 – Cost total */
-            ch.SetSourceData(ws.Range["B5"]);              // celula B5
-            ch.SeriesCollection(1).XValues = ws.Range["A5"];
-            ch.SeriesCollection(1).Name = "Cost total";
+                /* -- grafic Cost total vs Garanţie (fără procent) ----------------- */
+                Excel.ChartObjects chs = (Excel.ChartObjects)ws.ChartObjects();
+                Excel.ChartObject chObj = chs.Add(300, 40, 380, 240);
+                Excel.Chart ch = chObj.Chart;
+                ch.ChartType = Excel.XlChartType.xlColumnClustered;
 
-            /* serie 2 – Garanţie */
-            Excel.Series s2 = ch.SeriesCollection().NewSeries();
-            s2.Values = ws.Range["B7"];
-            s2.XValues = ws.Range["A7"];
-            s2.Name = "Garanţie";
+                /* serie 1 – Cost total */
+                ch.SetSourceData(ws.Range["B5"]);              // celula B5
+                ch.SeriesCollection(1).XValues = ws.Range["A5"];
+                ch.SeriesCollection(1).Name = "Cost total";
 
-            ch.HasTitle = true;
-            ch.ChartTitle.Text = "Cost total vs Garanţie";
+                /* serie 2 – Garanţie */
+                Excel.Series s2 = ch.SeriesCollection().NewSeries();
+                s2.Values = ws.Range["B7"];
+                s2.XValues = ws.Range["A7"];
+                s2.Name = "Garanţie";
+
+                ch.HasTitle = true;
+                ch.ChartTitle.Text = "Cost total vs Garanţie";
+            }
         }
 
         private void ThisDocument_Shutdown(object sender, System.EventArgs e)

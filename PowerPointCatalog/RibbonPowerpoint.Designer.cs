@@ -51,13 +51,15 @@
             // groupOferta
             // 
             this.groupOferta.Items.Add(this.btnOferta);
-            this.groupOferta.Label = "Oferta";
+            this.groupOferta.Label = "Oferta Leasing";
             this.groupOferta.Name = "groupOferta";
             // 
             // btnOferta
             // 
+            this.btnOferta.Image = global::PowerPointCatalog.Properties.Resources.pngtree_assignment_done_icon_color_flat_png_image_4666610;
             this.btnOferta.Label = "Selecteaza Oferta";
             this.btnOferta.Name = "btnOferta";
+            this.btnOferta.ShowImage = true;
             this.btnOferta.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.btnOferta_Click);
             // 
             // RibbonPowerpoint
