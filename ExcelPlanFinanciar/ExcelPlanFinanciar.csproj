@@ -208,6 +208,12 @@
     can be found.
   -->
   <ItemGroup>
+    <Compile Include="FormGraficSelector.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormGraficSelector.Designer.cs">
+      <DependentUpon>FormGraficSelector.cs</DependentUpon>
+    </Compile>
     <Compile Include="FormPlataAvans.cs">
       <SubType>Form</SubType>
     </Compile>

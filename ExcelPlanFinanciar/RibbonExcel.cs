@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Data.OleDb;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Windows.Forms;
@@ -30,84 +31,154 @@ namespace ExcelPlanFinanciar
 
         private void btnVizualizareGrafic_Click(object sender, RibbonControlEventArgs e)
         {
-            if (excelApp == null) return;
+            var f = new FormGraficSelector();
+            if (f.ShowDialog() != DialogResult.OK) return;
 
             Excel.Worksheet ws;
             try { ws = (Excel.Worksheet)excelApp.Worksheets["Plan Financiar Plata"]; }
             catch { MessageBox.Show("Întâi generaţi planul financiar."); return; }
 
-            //reset grafice
             foreach (Excel.ChartObject c in ws.ChartObjects())
-            {
-                string n = c.Name;
-                if (n == "GraficPlan" || n == "GraficPct" || n == "GraficCombo")
+                if (c.Name.StartsWith("Grafic"))
                     c.Delete();
-            }
 
             int lastRow = ws.Cells[ws.Rows.Count, "A"].End(Excel.XlDirection.xlUp).Row;
             if (lastRow < 3) { MessageBox.Show("Tabelul pare gol."); return; }
 
             Excel.Range rngLuna = ws.Range[$"A2:A{lastRow}"];
-            Excel.Range rngSold = ws.Range[$"E2:E{lastRow}"];   // sold rămas
-            Excel.Range rngDobanda = ws.Range[$"C2:C{lastRow}"];   // dobândă lunară
-            Excel.Range rngPrincipal = ws.Range[$"B2:B{lastRow}"]; // principal lunar
+            Excel.Range rngSold = ws.Range[$"E2:E{lastRow}"];
+            Excel.Range rngDobanda = ws.Range[$"C2:C{lastRow}"];
+            Excel.Range rngPrincipal = ws.Range[$"B2:B{lastRow}"];
 
-            //grafic linie sold + dobânda
-            Excel.ChartObject g1 = ((Excel.ChartObjects)ws.ChartObjects())
-                                   .Add(300, 40, 480, 280);
-            g1.Name = "GraficPlan";
-            Excel.Chart ch1 = g1.Chart;
-            ch1.ChartType = Excel.XlChartType.xlLine;
-            ch1.SetSourceData(rngSold);
-            ch1.SeriesCollection(1).XValues = rngLuna;
-            ch1.SeriesCollection(1).Name = "Sold rămas";
-            Excel.Series s2 = ch1.SeriesCollection().NewSeries();
-            s2.Values = rngDobanda; s2.XValues = rngLuna; s2.Name = "Dobândă lunară";
- 
-            ch1.HasTitle = true;
-            ch1.ChartTitle.Text = "Evoluţia soldului şi a dobânzii";
+            switch (f.AlegereGrafic)
+            {
+                case FormGraficSelector.TipGrafic.Linie:
+                    var g1 = ws.ChartObjects().Add(300, 40, 480, 280);
+                    g1.Name = "GraficLinie";
+                    var ch1 = g1.Chart;
+                    ch1.ChartType = Excel.XlChartType.xlLine;
+                    ch1.SetSourceData(rngSold);
+                    ch1.SeriesCollection(1).XValues = rngLuna;
+                    ch1.SeriesCollection(1).Name = "Sold rămas";
+                    var s2 = ch1.SeriesCollection().NewSeries();
+                    s2.Values = rngDobanda; s2.XValues = rngLuna; s2.Name = "Dobândă lunară";
+                    ch1.HasTitle = true;
+                    ch1.ChartTitle.Text = "Evoluţia soldului şi a dobânzii";
+                    break;
 
-            var axX = ch1.Axes(Excel.XlAxisType.xlCategory, Excel.XlAxisGroup.xlPrimary);
-            axX.HasTitle = true;
-            axX.AxisTitle.Caption = "Lună";          
+                case FormGraficSelector.TipGrafic.StructuraPct:
+                    var g2 = ws.ChartObjects().Add(300, 40, 480, 280);
+                    g2.Name = "GraficPct";
+                    var ch2 = g2.Chart;
+                    ch2.ChartType = Excel.XlChartType.xlColumnStacked100;
+                    ch2.SetSourceData(ws.Range[$"B2:C{lastRow}"]);
+                    ch2.SeriesCollection(1).Name = "Principal";
+                    ch2.SeriesCollection(2).Name = "Dobândă";
+                    ch2.SeriesCollection(1).XValues = rngLuna;
+                    ch2.HasTitle = true;
+                    ch2.ChartTitle.Text = "% Structură plată lunară";
+                    break;
 
-            var axY = ch1.Axes(Excel.XlAxisType.xlValue, Excel.XlAxisGroup.xlPrimary);
-            axY.HasTitle = true;
-            axY.AxisTitle.Caption = "Lei";
-
-            //grafic coloane suprapuse (procent principal vs dobândă)
-            Excel.ChartObject g2 = ((Excel.ChartObjects)ws.ChartObjects())
-                                   .Add(800, 40, 420, 280);
-            g2.Name = "GraficPct";
-            Excel.Chart ch2 = g2.Chart;
-            ch2.ChartType = Excel.XlChartType.xlColumnStacked100;
-            ch2.SetSourceData(ws.Range[$"B2:C{lastRow}"]);   // principal + dobândă
-            ch2.SeriesCollection(1).Name = "Principal";
-            ch2.SeriesCollection(2).Name = "Dobândă";
-            ch2.SeriesCollection(1).XValues = rngLuna;
-            ch2.HasTitle = true;
-            ch2.ChartTitle.Text = "% structură plată lunară";
-
-            //grafic Combo: coloane dobândă + linie sold pe axa secundara
-            Excel.ChartObject g3 = ((Excel.ChartObjects)ws.ChartObjects())
-                                   .Add(800, 340, 420, 280);
-            g3.Name = "GraficCombo";
-            Excel.Chart ch3 = g3.Chart;
-            ch3.ChartType = Excel.XlChartType.xlColumnClustered;
-            ch3.SetSourceData(rngDobanda);                    
-            ch3.SeriesCollection(1).XValues = rngLuna;
-            ch3.SeriesCollection(1).Name = "Dobândă lunară";
-
-            Excel.Series soldLine = ch3.SeriesCollection().NewSeries();
-            soldLine.Values = rngSold;
-            soldLine.XValues = rngLuna;
-            soldLine.Name = "Sold rămas";
-            soldLine.ChartType = Excel.XlChartType.xlLine;
-            soldLine.AxisGroup = Excel.XlAxisGroup.xlSecondary; 
-
-            ch3.HasTitle = true;
-            ch3.ChartTitle.Text = "Dobândă vs sold (axă secundară)";
+                case FormGraficSelector.TipGrafic.Combo:
+                    var g3 = ws.ChartObjects().Add(300, 40, 480, 280);
+                    g3.Name = "GraficCombo";
+                    var ch3 = g3.Chart;
+                    ch3.ChartType = Excel.XlChartType.xlColumnClustered;
+                    ch3.SetSourceData(rngDobanda);
+                    ch3.SeriesCollection(1).XValues = rngLuna;
+                    ch3.SeriesCollection(1).Name = "Dobândă lunară";
+                    var soldLine = ch3.SeriesCollection().NewSeries();
+                    soldLine.Values = rngSold;
+                    soldLine.XValues = rngLuna;
+                    soldLine.Name = "Sold rămas";
+                    soldLine.ChartType = Excel.XlChartType.xlLine;
+                    soldLine.AxisGroup = Excel.XlAxisGroup.xlSecondary;
+                    ch3.HasTitle = true;
+                    ch3.ChartTitle.Text = "Dobândă vs Sold (axă secundară)";
+                    break;
+            }
         }
+
+        //private void btnVizualizareGrafic_Click(object sender, RibbonControlEventArgs e)
+        //{
+        //    if (excelApp == null) return;
+
+        //    Excel.Worksheet ws;
+        //    try { ws = (Excel.Worksheet)excelApp.Worksheets["Plan Financiar Plata"]; }
+        //    catch { MessageBox.Show("Întâi generaţi planul financiar."); return; }
+
+        //    //reset grafice
+        //    foreach (Excel.ChartObject c in ws.ChartObjects())
+        //    {
+        //        string n = c.Name;
+        //        if (n == "GraficPlan" || n == "GraficPct" || n == "GraficCombo")
+        //            c.Delete();
+        //    }
+
+        //    int lastRow = ws.Cells[ws.Rows.Count, "A"].End(Excel.XlDirection.xlUp).Row;
+        //    if (lastRow < 3) { MessageBox.Show("Tabelul pare gol."); return; }
+
+        //    Excel.Range rngLuna = ws.Range[$"A2:A{lastRow}"];
+        //    Excel.Range rngSold = ws.Range[$"E2:E{lastRow}"];   // sold rămas
+        //    Excel.Range rngDobanda = ws.Range[$"C2:C{lastRow}"];   // dobândă lunară
+        //    Excel.Range rngPrincipal = ws.Range[$"B2:B{lastRow}"]; // principal lunar
+
+        //    //grafic linie sold + dobânda
+        //    Excel.ChartObject g1 = ((Excel.ChartObjects)ws.ChartObjects())
+        //                           .Add(300, 40, 480, 280);
+        //    g1.Name = "GraficPlan";
+        //    Excel.Chart ch1 = g1.Chart;
+        //    ch1.ChartType = Excel.XlChartType.xlLine;
+        //    ch1.SetSourceData(rngSold);
+        //    ch1.SeriesCollection(1).XValues = rngLuna;
+        //    ch1.SeriesCollection(1).Name = "Sold rămas";
+        //    Excel.Series s2 = ch1.SeriesCollection().NewSeries();
+        //    s2.Values = rngDobanda; s2.XValues = rngLuna; s2.Name = "Dobândă lunară";
+
+        //    ch1.HasTitle = true;
+        //    ch1.ChartTitle.Text = "Evoluţia soldului şi a dobânzii";
+
+        //    var axX = ch1.Axes(Excel.XlAxisType.xlCategory, Excel.XlAxisGroup.xlPrimary);
+        //    axX.HasTitle = true;
+        //    axX.AxisTitle.Caption = "Lună";          
+
+        //    var axY = ch1.Axes(Excel.XlAxisType.xlValue, Excel.XlAxisGroup.xlPrimary);
+        //    axY.HasTitle = true;
+        //    axY.AxisTitle.Caption = "Lei";
+
+        //    //grafic coloane suprapuse (procent principal vs dobândă)
+        //    Excel.ChartObject g2 = ((Excel.ChartObjects)ws.ChartObjects())
+        //                           .Add(800, 40, 420, 280);
+        //    g2.Name = "GraficPct";
+        //    Excel.Chart ch2 = g2.Chart;
+        //    ch2.ChartType = Excel.XlChartType.xlColumnStacked100;
+        //    ch2.SetSourceData(ws.Range[$"B2:C{lastRow}"]);   // principal + dobândă
+        //    ch2.SeriesCollection(1).Name = "Principal";
+        //    ch2.SeriesCollection(2).Name = "Dobândă";
+        //    ch2.SeriesCollection(1).XValues = rngLuna;
+        //    ch2.HasTitle = true;
+        //    ch2.ChartTitle.Text = "% structură plată lunară";
+
+        //    //grafic Combo: coloane dobândă + linie sold pe axa secundara
+        //    Excel.ChartObject g3 = ((Excel.ChartObjects)ws.ChartObjects())
+        //                           .Add(800, 340, 420, 280);
+        //    g3.Name = "GraficCombo";
+        //    Excel.Chart ch3 = g3.Chart;
+        //    ch3.ChartType = Excel.XlChartType.xlColumnClustered;
+        //    ch3.SetSourceData(rngDobanda);                    
+        //    ch3.SeriesCollection(1).XValues = rngLuna;
+        //    ch3.SeriesCollection(1).Name = "Dobândă lunară";
+
+        //    Excel.Series soldLine = ch3.SeriesCollection().NewSeries();
+        //    soldLine.Values = rngSold;
+        //    soldLine.XValues = rngLuna;
+        //    soldLine.Name = "Sold rămas";
+        //    soldLine.ChartType = Excel.XlChartType.xlLine;
+        //    soldLine.AxisGroup = Excel.XlAxisGroup.xlSecondary; 
+
+        //    ch3.HasTitle = true;
+        //    ch3.ChartTitle.Text = "Dobândă vs sold (axă secundară)";
+        //}
 
         private void btnPaymentPlan_Click(object sender, RibbonControlEventArgs e)
         {
@@ -234,6 +305,107 @@ namespace ExcelPlanFinanciar
 
             if (f.ShowDialog() == DialogResult.OK)
                 GenereazaPlan(f.Avans);
+        }
+
+        private void btnExportPDF_Click(object sender, RibbonControlEventArgs e)
+        {
+            try
+            {
+                Excel.Range selectie = (Excel.Range)excelApp.Selection;
+
+                if (selectie == null || selectie.Rows.Count < 1)
+                {
+                    MessageBox.Show("Selectați celulele corespunzătoare perioadei dorite.");
+                    return;
+                }
+
+                string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+                string fileName = $"RaportFinanciar_{DateTime.Now:dd-MM-yyyy_HH-mm}.pdf";
+                string fullPath = Path.Combine(desktopPath, fileName);
+
+                selectie.ExportAsFixedFormat(
+                    Excel.XlFixedFormatType.xlTypePDF,
+                    fullPath,
+                    Excel.XlFixedFormatQuality.xlQualityStandard
+                );
+
+                MessageBox.Show($"Raport exportat cu succes pe Desktop:\n{fullPath}");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Eroare la export PDF: " + ex.Message);
+            }
+        }
+
+        private void btnGraficSelectie_Click(object sender, RibbonControlEventArgs e)
+        {
+            try
+            {
+                Excel.Worksheet ws = (Excel.Worksheet)excelApp.ActiveSheet;
+                Excel.Range selectie = (Excel.Range)excelApp.Selection;
+
+                if (selectie == null || selectie.Rows.Count < 3)
+                {
+                    MessageBox.Show("Selectați cel puțin 3 rânduri: etichete + 2 seturi de valori.");
+                    return;
+                }
+
+                int firstCol = selectie.Column;
+                int lastCol = firstCol + selectie.Columns.Count - 1;
+
+                int labelRow = selectie.Row;
+                int serie1Row = labelRow + 1;
+                int serie2Row = labelRow + 2;
+
+                int nrPuncte = lastCol - firstCol + 1;
+                string[] etichete = new string[nrPuncte];
+                double[] serie1 = new double[nrPuncte];
+                double[] serie2 = new double[nrPuncte];
+
+                for (int i = 0; i < nrPuncte; i++)
+                {
+                    var labelCell = ws.Cells[labelRow, firstCol + i];
+                    var val1Cell = ws.Cells[serie1Row, firstCol + i];
+                    var val2Cell = ws.Cells[serie2Row, firstCol + i];
+
+                    etichete[i] = labelCell.Text.ToString();
+
+                    if (double.TryParse(val1Cell.Value2?.ToString(), out double val1))
+                        serie1[i] = val1;
+                    if (double.TryParse(val2Cell.Value2?.ToString(), out double val2))
+                        serie2[i] = -Math.Abs(val2); 
+                }
+
+                Excel.ChartObjects charts = (Excel.ChartObjects)ws.ChartObjects();
+                Excel.ChartObject chartObj = charts.Add(300, 100, 600, 350);
+                chartObj.Name = "GraficBipolar";
+                Excel.Chart chart = chartObj.Chart;
+
+                chart.ChartType = Excel.XlChartType.xlBarClustered;
+                chart.HasTitle = true;
+                chart.ChartTitle.Text = "Comparație Bidirecțională";
+
+                Excel.SeriesCollection series = (Excel.SeriesCollection)chart.SeriesCollection();
+
+                Excel.Series s1 = series.NewSeries();
+                s1.Values = serie1;
+                s1.XValues = etichete;
+                s1.Name = "Luna 1";
+
+                Excel.Series s2 = series.NewSeries();
+                s2.Values = serie2;
+                s2.XValues = etichete;
+                s2.Name = "Luna 2";
+
+                chart.Axes(Excel.XlAxisType.xlValue).HasTitle = true;
+                chart.Axes(Excel.XlAxisType.xlValue).AxisTitle.Text = "Valori (lei)";
+                chart.Axes(Excel.XlAxisType.xlCategory).ReversePlotOrder = true;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Eroare la generarea graficului bipolar: " + ex.Message);
+            }
+
         }
     }
 }

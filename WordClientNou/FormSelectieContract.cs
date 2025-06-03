@@ -15,7 +15,7 @@ namespace WordClientNou
         {
             public int IdOferta;
             public string Text;
-            public override string ToString() => Text;   // aşa apare în listă
+            public override string ToString() => Text; 
         }
 
         public FormSelectieContract()

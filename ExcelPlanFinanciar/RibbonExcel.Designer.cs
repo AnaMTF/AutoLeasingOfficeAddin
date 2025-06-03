@@ -39,6 +39,9 @@
             this.btnPaymentPlan = this.Factory.CreateRibbonButton();
             this.btnVizualizareGrafic = this.Factory.CreateRibbonButton();
             this.btnPlataInAvans = this.Factory.CreateRibbonButton();
+            this.separator1 = this.Factory.CreateRibbonSeparator();
+            this.btnExportPDF = this.Factory.CreateRibbonButton();
+            this.btnGraficSelectie = this.Factory.CreateRibbonButton();
             this.tab1.SuspendLayout();
             this.grupAnalizeFinanciare.SuspendLayout();
             this.SuspendLayout();
@@ -55,6 +58,9 @@
             this.grupAnalizeFinanciare.Items.Add(this.btnPaymentPlan);
             this.grupAnalizeFinanciare.Items.Add(this.btnVizualizareGrafic);
             this.grupAnalizeFinanciare.Items.Add(this.btnPlataInAvans);
+            this.grupAnalizeFinanciare.Items.Add(this.separator1);
+            this.grupAnalizeFinanciare.Items.Add(this.btnExportPDF);
+            this.grupAnalizeFinanciare.Items.Add(this.btnGraficSelectie);
             this.grupAnalizeFinanciare.Label = "Analize Leasing";
             this.grupAnalizeFinanciare.Name = "grupAnalizeFinanciare";
             // 
@@ -82,6 +88,22 @@
             this.btnPlataInAvans.ShowImage = true;
             this.btnPlataInAvans.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.btnPlataInAvans_Click);
             // 
+            // separator1
+            // 
+            this.separator1.Name = "separator1";
+            // 
+            // btnExportPDF
+            // 
+            this.btnExportPDF.Label = "Exportati in PDF";
+            this.btnExportPDF.Name = "btnExportPDF";
+            this.btnExportPDF.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.btnExportPDF_Click);
+            // 
+            // btnGraficSelectie
+            // 
+            this.btnGraficSelectie.Label = "Grafic pentru Selectie";
+            this.btnGraficSelectie.Name = "btnGraficSelectie";
+            this.btnGraficSelectie.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.btnGraficSelectie_Click);
+            // 
             // RibbonExcel
             // 
             this.Name = "RibbonExcel";
@@ -103,6 +125,9 @@
         internal Microsoft.Office.Tools.Ribbon.RibbonButton btnVizualizareGrafic;
         internal Microsoft.Office.Tools.Ribbon.RibbonButton btnPaymentPlan;
         internal Microsoft.Office.Tools.Ribbon.RibbonButton btnPlataInAvans;
+        internal Microsoft.Office.Tools.Ribbon.RibbonSeparator separator1;
+        internal Microsoft.Office.Tools.Ribbon.RibbonButton btnExportPDF;
+        internal Microsoft.Office.Tools.Ribbon.RibbonButton btnGraficSelectie;
     }
 
     partial class ThisRibbonCollection

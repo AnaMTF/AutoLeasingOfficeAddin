@@ -27,7 +27,7 @@ namespace WordClientNou
         Button btnPowerpoint;
         Button btnVizualizareContract;
         Button btnExcelPlanFinanciar;
-        // cand am incercat cu cale relativa imi dadea eroare, ma scuzati
+        
         string connString = @"Provider=Microsoft.ACE.OLEDB.12.0;Data Source=C:\Users\anama\source\repos\ProiectIPLA\WordClientNou\IPLAproiect.accdb";
         string ImageFolder =@"C:\Users\anama\source\repos\ProiectIPLA\WordClientNou\ImaginiDB";
 
@@ -273,7 +273,7 @@ namespace WordClientNou
                         PowerPoint.PpSlideLayout.ppLayoutBlank);
             sld.Tags.Add("OfferID", of.IdOferta.ToString());
 
-            //Gradient albastru pe fundal
+            //Gradient
             sld.FollowMasterBackground = Office.MsoTriState.msoFalse;
             var bgFill = sld.Background.Fill;
             bgFill.Visible = Office.MsoTriState.msoTrue;
@@ -294,7 +294,7 @@ namespace WordClientNou
             rngTitlu.ParagraphFormat.Alignment = PowerPoint.PpParagraphAlignment.ppAlignCenter;
             titluBox.Fill.Visible = Office.MsoTriState.msoTrue;
             titluBox.Fill.Solid();
-            titluBox.Fill.ForeColor.RGB = ColorTranslator.ToOle(Color.FromArgb(173, 216, 230)); // baby blue
+            titluBox.Fill.ForeColor.RGB = ColorTranslator.ToOle(Color.FromArgb(173, 216, 230));
 
             //Imagine masina
             string imgPath = System.IO.Path.Combine(ImageFolder, of.NumePoza ?? "");
@@ -316,19 +316,19 @@ namespace WordClientNou
             //Caseta cu pret
             var pretBox = sld.Shapes.AddTextbox(
                 Office.MsoTextOrientation.msoTextOrientationHorizontal,
-                680, 160, 140, 40); // ⬅️ lățit
+                680, 160, 140, 40); 
             pretBox.TextFrame.TextRange.Text = of.PretZi.ToString("0");
             pretBox.TextFrame.TextRange.Font.Size = 32;
             pretBox.TextFrame.TextRange.Font.Bold = Office.MsoTriState.msoTrue;
             pretBox.TextFrame.TextRange.Font.Color.RGB = ColorTranslator.ToOle(Color.HotPink);
             pretBox.TextFrame.TextRange.ParagraphFormat.Alignment =
                 PowerPoint.PpParagraphAlignment.ppAlignCenter;
-            pretBox.TextFrame.VerticalAnchor = Office.MsoVerticalAnchor.msoAnchorMiddle; // ⬅️ centrare verticală
+            pretBox.TextFrame.VerticalAnchor = Office.MsoVerticalAnchor.msoAnchorMiddle;
 
             //Caseta cu lei
             var leiBox = sld.Shapes.AddTextbox(
                 Office.MsoTextOrientation.msoTextOrientationHorizontal,
-                685, 195, 130, 30); // ⬅️ lățit și repoziționat
+                685, 195, 130, 30);
             leiBox.TextFrame.TextRange.Text = "Lei";
             leiBox.TextFrame.TextRange.Font.Size = 24;
             leiBox.TextFrame.TextRange.Font.Bold = Office.MsoTriState.msoTrue;
